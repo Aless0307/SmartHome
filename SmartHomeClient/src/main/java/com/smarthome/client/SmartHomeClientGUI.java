@@ -548,6 +548,7 @@ public class SmartHomeClientGUI extends JFrame {
         List<Map<String, String>> climas = new ArrayList<>();
         List<Map<String, String>> luces = new ArrayList<>();
         List<Map<String, String>> speakers = new ArrayList<>();
+        List<Map<String, String>> cameras = new ArrayList<>();
         List<Map<String, String>> otrosDispositivos = new ArrayList<>();
         
         for (Map<String, String> device : devices) {
@@ -558,6 +559,8 @@ public class SmartHomeClientGUI extends JFrame {
                 luces.add(device);
             } else if ("speaker".equals(type)) {
                 speakers.add(device);
+            } else if ("camera".equals(type)) {
+                cameras.add(device);
             } else {
                 otrosDispositivos.add(device);
             }
@@ -711,6 +714,49 @@ public class SmartHomeClientGUI extends JFrame {
             }
             if (climasGrid.getComponentCount() > 0) {
                 devicesPanel.add(climasGrid);
+            }
+        }
+        
+        // ═══════════════════════════════════════════════════════════
+        // SECCIÓN DE CÁMARAS DE SEGURIDAD
+        // ═══════════════════════════════════════════════════════════
+        if (!cameras.isEmpty() && (selectedRoom == null || selectedRoom.equals("Todas"))) {
+            // Título de sección
+            JPanel cameraHeader = new JPanel(new FlowLayout(FlowLayout.LEFT));
+            cameraHeader.setBackground(bgDark);
+            cameraHeader.setMaximumSize(new Dimension(Integer.MAX_VALUE, 35));
+            JLabel cameraTitle = new JLabel("📹 CÁMARAS DE SEGURIDAD");
+            cameraTitle.setFont(new Font("Segoe UI", Font.BOLD, 14));
+            cameraTitle.setForeground(new Color(168, 85, 247)); // Púrpura
+            cameraHeader.add(cameraTitle);
+            devicesPanel.add(cameraHeader);
+            
+            // Panel para cámaras en grid 3 columnas
+            JPanel camerasGrid = new JPanel(new GridLayout(0, 3, 10, 10));
+            camerasGrid.setBackground(bgDark);
+            camerasGrid.setBorder(BorderFactory.createEmptyBorder(5, 0, 10, 0));
+            
+            for (Map<String, String> camera : cameras) {
+                camerasGrid.add(createCameraCard(camera));
+            }
+            
+            // Wrapper
+            JPanel camerasWrapper = new JPanel(new BorderLayout());
+            camerasWrapper.setBackground(bgDark);
+            camerasWrapper.add(camerasGrid, BorderLayout.NORTH);
+            devicesPanel.add(camerasWrapper);
+        } else if (!cameras.isEmpty()) {
+            // Si hay filtro de habitación, mostrar solo cámaras de esa habitación
+            JPanel camerasGrid = new JPanel(new GridLayout(0, 3, 10, 10));
+            camerasGrid.setBackground(bgDark);
+            for (Map<String, String> camera : cameras) {
+                String room = camera.get("room");
+                if (selectedRoom != null && selectedRoom.equals(room)) {
+                    camerasGrid.add(createCameraCard(camera));
+                }
+            }
+            if (camerasGrid.getComponentCount() > 0) {
+                devicesPanel.add(camerasGrid);
             }
         }
         
@@ -1293,6 +1339,138 @@ public class SmartHomeClientGUI extends JFrame {
     }
     
     /**
+     * Crear tarjeta de cámara de seguridad
+     */
+    private JPanel createCameraCard(Map<String, String> device) {
+        String id = device.get("id");
+        String name = device.get("name");
+        String room = device.get("room");
+        boolean status = "true".equals(device.get("status")); // true = cámara encendida
+        String valueStr = device.get("value");
+        int lightValue = 0;
+        try {
+            if (valueStr != null) lightValue = Integer.parseInt(valueStr);
+        } catch (Exception e) {}
+        boolean lightOn = lightValue > 0;
+        
+        Color cameraPurple = new Color(168, 85, 247);
+        Color bgCamera = new Color(35, 25, 55);
+        
+        JPanel card = new JPanel();
+        card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
+        card.setBackground(bgCamera);
+        card.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(cameraPurple.darker(), 1),
+            BorderFactory.createEmptyBorder(12, 15, 12, 15)
+        ));
+        
+        // ═══════════════════════════════════════════════════════════
+        // ENCABEZADO CON NOMBRE Y ESTADO
+        // ═══════════════════════════════════════════════════════════
+        JPanel headerPanel = new JPanel(new BorderLayout());
+        headerPanel.setBackground(bgCamera);
+        headerPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        
+        JLabel nameLabel = new JLabel("📹 " + name);
+        nameLabel.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        nameLabel.setForeground(Color.WHITE);
+        headerPanel.add(nameLabel, BorderLayout.WEST);
+        
+        // Indicador de estado (punto verde/rojo)
+        JLabel statusDot = new JLabel("●");
+        statusDot.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        statusDot.setForeground(status ? new Color(74, 222, 128) : new Color(239, 68, 68));
+        headerPanel.add(statusDot, BorderLayout.EAST);
+        
+        card.add(headerPanel);
+        card.add(Box.createVerticalStrut(5));
+        
+        // Ubicación
+        JLabel roomLabel = new JLabel("📍 " + room);
+        roomLabel.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+        roomLabel.setForeground(textSecondary);
+        roomLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        card.add(roomLabel);
+        
+        card.add(Box.createVerticalStrut(8));
+        
+        // ═══════════════════════════════════════════════════════════
+        // SIMULADOR DE FEED (vista previa placeholder)
+        // ═══════════════════════════════════════════════════════════
+        JPanel feedPanel = new JPanel();
+        feedPanel.setBackground(status ? new Color(20, 20, 30) : Color.BLACK);
+        feedPanel.setPreferredSize(new Dimension(200, 80));
+        feedPanel.setBorder(BorderFactory.createLineBorder(new Color(60, 60, 60), 1));
+        feedPanel.setLayout(new GridBagLayout());
+        feedPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        feedPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 80));
+        
+        JLabel feedLabel = new JLabel(status ? "🎥 En vivo" : "📴 Sin señal");
+        feedLabel.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        feedLabel.setForeground(status ? new Color(74, 222, 128) : Color.GRAY);
+        feedPanel.add(feedLabel);
+        
+        card.add(feedPanel);
+        card.add(Box.createVerticalStrut(10));
+        
+        // ═══════════════════════════════════════════════════════════
+        // ESTADO DE LUZ IR
+        // ═══════════════════════════════════════════════════════════
+        JPanel lightStatusPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
+        lightStatusPanel.setBackground(bgCamera);
+        lightStatusPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        
+        JLabel lightIcon = new JLabel(lightOn ? "💡" : "🔦");
+        lightStatusPanel.add(lightIcon);
+        
+        JLabel lightLabel = new JLabel("Luz IR: " + (lightOn ? "Encendida" : "Apagada"));
+        lightLabel.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+        lightLabel.setForeground(lightOn ? new Color(250, 204, 21) : Color.GRAY);
+        lightStatusPanel.add(lightLabel);
+        
+        card.add(lightStatusPanel);
+        card.add(Box.createVerticalStrut(10));
+        
+        // ═══════════════════════════════════════════════════════════
+        // CONTROLES DE CÁMARA
+        // ═══════════════════════════════════════════════════════════
+        JPanel controlPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
+        controlPanel.setBackground(bgCamera);
+        controlPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        
+        // Botón ON/OFF Cámara
+        JButton camToggleBtn = new JButton(status ? "📴 Apagar" : "📹 Encender");
+        camToggleBtn.setFont(new Font("Segoe UI", Font.BOLD, 10));
+        camToggleBtn.setPreferredSize(new Dimension(80, 26));
+        camToggleBtn.setBackground(status ? new Color(239, 68, 68) : new Color(74, 222, 128));
+        camToggleBtn.setForeground(status ? Color.WHITE : Color.BLACK);
+        camToggleBtn.setFocusPainted(false);
+        camToggleBtn.addActionListener(e -> {
+            client.controlDevice(id, status ? "OFF" : "ON");
+            log("📹 " + name + ": " + (status ? "Apagando" : "Encendiendo"));
+        });
+        controlPanel.add(camToggleBtn);
+        
+        // Botón toggle luz IR
+        JButton lightToggleBtn = new JButton(lightOn ? "🔦 IR OFF" : "💡 IR ON");
+        lightToggleBtn.setFont(new Font("Segoe UI", Font.BOLD, 10));
+        lightToggleBtn.setPreferredSize(new Dimension(70, 26));
+        lightToggleBtn.setBackground(lightOn ? new Color(100, 80, 20) : new Color(60, 60, 60));
+        lightToggleBtn.setForeground(Color.WHITE);
+        lightToggleBtn.setFocusPainted(false);
+        lightToggleBtn.addActionListener(e -> {
+            int newValue = lightOn ? 0 : 100;
+            client.controlDevice(id, "SET_VALUE", String.valueOf(newValue));
+            log("📹 " + name + ": Luz IR " + (lightOn ? "OFF" : "ON"));
+        });
+        controlPanel.add(lightToggleBtn);
+        
+        card.add(controlPanel);
+        
+        return card;
+    }
+    
+    /**
      * Crear tarjeta de dispositivo
      */
     private JPanel createDeviceCard(Map<String, String> device) {
@@ -1530,6 +1708,10 @@ public class SmartHomeClientGUI extends JFrame {
             case "door": return "🚪";
             case "camera": return "📹";
             case "sensor": return "📡";
+            case "tv": return "📺";
+            case "appliance": return "🧺";
+            case "speaker": return "🔊";
+            case "ac": return "❄️";
             default: return "📱";
         }
     }
