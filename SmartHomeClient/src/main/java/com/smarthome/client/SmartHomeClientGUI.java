@@ -19,6 +19,7 @@ public class SmartHomeClientGUI extends JFrame {
     private TcpClient client;
     private String currentUser = null;
     private String currentToken = null;
+    private String serverHost = "localhost";
     
     // Componentes de login
     private JPanel loginPanel;
@@ -35,6 +36,10 @@ public class SmartHomeClientGUI extends JFrame {
     private JComboBox<String> roomFilter;
     private JLabel userLabel;
     private JTextArea logArea;
+    
+    // Panel de cámaras
+    private CameraViewerPanel cameraViewerPanel;
+    private JDialog cameraDialog;
     
     // Datos
     private List<Map<String, String>> devices = new ArrayList<>();
@@ -269,6 +274,7 @@ public class SmartHomeClientGUI extends JFrame {
      */
     private void doConnect() {
         String host = hostField.getText().trim();
+        serverHost = host; // Guardar para el visor de cámaras
         int port = Integer.parseInt(portField.getText().trim());
         String username = usernameField.getText().trim();
         String password = new String(passwordField.getPassword());
@@ -356,9 +362,12 @@ public class SmartHomeClientGUI extends JFrame {
                     String changedBy = data.get("changedBy");
                     if (changedBy != null && !changedBy.equals(currentUser)) {
                         log("📢 Dispositivo cambiado por: " + changedBy);
+                        // Solo recargar si el cambio fue de OTRO usuario
+                        // Para evitar destruir streams de cámara activos
+                        client.getDevices();
                     }
-                    // Actualizar dispositivos
-                    client.getDevices();
+                    // Si el cambio fue del usuario actual, NO recargar
+                    // Los botones ya actualizaron la UI localmente
                     break;
                     
                 case "AUTH_REQUIRED":
@@ -1339,7 +1348,7 @@ public class SmartHomeClientGUI extends JFrame {
     }
     
     /**
-     * Crear tarjeta de cámara de seguridad
+     * Crear tarjeta de cámara de seguridad con streaming en vivo
      */
     private JPanel createCameraCard(Map<String, String> device) {
         String id = device.get("id");
@@ -1353,6 +1362,16 @@ public class SmartHomeClientGUI extends JFrame {
         } catch (Exception e) {}
         boolean lightOn = lightValue > 0;
         
+        // Obtener cameraId del nombre (ej: "Cámara Entrada" -> "cam_entrada")
+        String cameraId = name.toLowerCase()
+            .replace("cámara ", "cam_")
+            .replace("á", "a")
+            .replace("é", "e")
+            .replace("í", "i")
+            .replace("ó", "o")
+            .replace("ú", "u")
+            .replace(" ", "_");
+        
         Color cameraPurple = new Color(168, 85, 247);
         Color bgCamera = new Color(35, 25, 55);
         
@@ -1361,7 +1380,7 @@ public class SmartHomeClientGUI extends JFrame {
         card.setBackground(bgCamera);
         card.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createLineBorder(cameraPurple.darker(), 1),
-            BorderFactory.createEmptyBorder(12, 15, 12, 15)
+            BorderFactory.createEmptyBorder(10, 12, 10, 12)
         ));
         
         // ═══════════════════════════════════════════════════════════
@@ -1370,104 +1389,392 @@ public class SmartHomeClientGUI extends JFrame {
         JPanel headerPanel = new JPanel(new BorderLayout());
         headerPanel.setBackground(bgCamera);
         headerPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        headerPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 25));
         
         JLabel nameLabel = new JLabel("📹 " + name);
-        nameLabel.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        nameLabel.setFont(new Font("Segoe UI", Font.BOLD, 12));
         nameLabel.setForeground(Color.WHITE);
         headerPanel.add(nameLabel, BorderLayout.WEST);
         
         // Indicador de estado (punto verde/rojo)
         JLabel statusDot = new JLabel("●");
-        statusDot.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        statusDot.setFont(new Font("Segoe UI", Font.BOLD, 14));
         statusDot.setForeground(status ? new Color(74, 222, 128) : new Color(239, 68, 68));
         headerPanel.add(statusDot, BorderLayout.EAST);
         
         card.add(headerPanel);
-        card.add(Box.createVerticalStrut(5));
+        card.add(Box.createVerticalStrut(3));
         
-        // Ubicación
+        // Ubicación pequeña
         JLabel roomLabel = new JLabel("📍 " + room);
-        roomLabel.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+        roomLabel.setFont(new Font("Segoe UI", Font.PLAIN, 9));
         roomLabel.setForeground(textSecondary);
         roomLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
         card.add(roomLabel);
         
+        card.add(Box.createVerticalStrut(5));
+        
+        // ═══════════════════════════════════════════════════════════
+        // ÁREA DE VIDEO EN VIVO
+        // ═══════════════════════════════════════════════════════════
+        JLabel videoLabel = new JLabel();
+        videoLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        videoLabel.setVerticalAlignment(SwingConstants.CENTER);
+        videoLabel.setBackground(Color.BLACK);
+        videoLabel.setOpaque(true);
+        videoLabel.setPreferredSize(new Dimension(280, 160));
+        videoLabel.setMinimumSize(new Dimension(200, 120));
+        videoLabel.setMaximumSize(new Dimension(400, 220));
+        videoLabel.setText("▶ Click Play");
+        videoLabel.setForeground(Color.GRAY);
+        videoLabel.setFont(new Font("Segoe UI", Font.ITALIC, 11));
+        videoLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        videoLabel.setBorder(BorderFactory.createLineBorder(new Color(60, 60, 60), 1));
+        
+        card.add(videoLabel);
         card.add(Box.createVerticalStrut(8));
         
         // ═══════════════════════════════════════════════════════════
-        // SIMULADOR DE FEED (vista previa placeholder)
+        // CONTROLES DE VIDEO
         // ═══════════════════════════════════════════════════════════
-        JPanel feedPanel = new JPanel();
-        feedPanel.setBackground(status ? new Color(20, 20, 30) : Color.BLACK);
-        feedPanel.setPreferredSize(new Dimension(200, 80));
-        feedPanel.setBorder(BorderFactory.createLineBorder(new Color(60, 60, 60), 1));
-        feedPanel.setLayout(new GridBagLayout());
-        feedPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        feedPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 80));
+        JPanel videoControlPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 0));
+        videoControlPanel.setBackground(bgCamera);
+        videoControlPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
         
-        JLabel feedLabel = new JLabel(status ? "🎥 En vivo" : "📴 Sin señal");
-        feedLabel.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        feedLabel.setForeground(status ? new Color(74, 222, 128) : Color.GRAY);
-        feedPanel.add(feedLabel);
+        // Estado del streaming
+        final boolean[] isStreaming = {false};
+        final Thread[] streamThread = {null};
+        final JLabel[] fpsLabelRef = {null};
         
-        card.add(feedPanel);
-        card.add(Box.createVerticalStrut(10));
+        // Botón Play/Pause
+        JButton playBtn = new JButton("▶");
+        playBtn.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        playBtn.setPreferredSize(new Dimension(40, 26));
+        playBtn.setBackground(new Color(74, 222, 128));
+        playBtn.setForeground(Color.BLACK);
+        playBtn.setFocusPainted(false);
+        playBtn.setToolTipText("Iniciar/Pausar stream");
+        
+        // Botón Maximizar
+        JButton maxBtn = new JButton("⛶");
+        maxBtn.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        maxBtn.setPreferredSize(new Dimension(35, 26));
+        maxBtn.setBackground(new Color(60, 60, 80));
+        maxBtn.setForeground(Color.WHITE);
+        maxBtn.setFocusPainted(false);
+        maxBtn.setToolTipText("Pantalla completa");
+        
+        // FPS Label
+        JLabel fpsLabel = new JLabel("-- FPS");
+        fpsLabel.setFont(new Font("Segoe UI", Font.PLAIN, 9));
+        fpsLabel.setForeground(textSecondary);
+        fpsLabelRef[0] = fpsLabel;
+        
+        // Acción Play/Pause
+        playBtn.addActionListener(e -> {
+            if (!isStreaming[0]) {
+                // Iniciar streaming
+                isStreaming[0] = true;
+                playBtn.setText("⏸");
+                playBtn.setBackground(new Color(239, 68, 68));
+                videoLabel.setText("");
+                
+                streamThread[0] = new Thread(() -> {
+                    int frameCount = 0;
+                    long lastFpsTime = System.currentTimeMillis();
+                    
+                    while (isStreaming[0]) {
+                        try {
+                            java.net.URL url = new java.net.URL("http://" + serverHost + ":8081/camera/frame?id=" + cameraId);
+                            java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
+                            conn.setConnectTimeout(2000);
+                            conn.setReadTimeout(2000);
+                            
+                            if (conn.getResponseCode() == 200) {
+                                java.io.InputStream in = conn.getInputStream();
+                                java.awt.image.BufferedImage img = javax.imageio.ImageIO.read(in);
+                                in.close();
+                                
+                                if (img != null) {
+                                    // Escalar imagen
+                                    int w = videoLabel.getWidth();
+                                    int h = videoLabel.getHeight();
+                                    if (w > 0 && h > 0) {
+                                        Image scaled = img.getScaledInstance(w, h, Image.SCALE_FAST);
+                                        SwingUtilities.invokeLater(() -> {
+                                            videoLabel.setIcon(new ImageIcon(scaled));
+                                            videoLabel.setText("");
+                                        });
+                                    }
+                                    
+                                    // FPS
+                                    frameCount++;
+                                    long now = System.currentTimeMillis();
+                                    if (now - lastFpsTime >= 1000) {
+                                        int fps = frameCount;
+                                        frameCount = 0;
+                                        lastFpsTime = now;
+                                        SwingUtilities.invokeLater(() -> fpsLabelRef[0].setText(fps + " FPS"));
+                                    }
+                                }
+                            }
+                            conn.disconnect();
+                            Thread.sleep(50); // ~20 FPS max
+                            
+                        } catch (InterruptedException ie) {
+                            break;
+                        } catch (Exception ex) {
+                            SwingUtilities.invokeLater(() -> {
+                                videoLabel.setIcon(null);
+                                videoLabel.setText("Sin señal");
+                            });
+                            try { Thread.sleep(1000); } catch (Exception ignored) {}
+                        }
+                    }
+                }, "CameraStream-" + cameraId);
+                streamThread[0].setDaemon(true);
+                streamThread[0].start();
+                
+            } else {
+                // Detener streaming
+                isStreaming[0] = false;
+                playBtn.setText("▶");
+                playBtn.setBackground(new Color(74, 222, 128));
+                if (streamThread[0] != null) {
+                    streamThread[0].interrupt();
+                }
+                videoLabel.setIcon(null);
+                videoLabel.setText("▶ Click Play");
+                fpsLabelRef[0].setText("-- FPS");
+            }
+        });
+        
+        // Acción Maximizar - abrir ventana grande
+        maxBtn.addActionListener(e -> {
+            openFullscreenCamera(name, cameraId, serverHost);
+        });
+        
+        videoControlPanel.add(playBtn);
+        videoControlPanel.add(maxBtn);
+        videoControlPanel.add(Box.createHorizontalStrut(5));
+        videoControlPanel.add(fpsLabel);
+        
+        card.add(videoControlPanel);
+        card.add(Box.createVerticalStrut(6));
         
         // ═══════════════════════════════════════════════════════════
-        // ESTADO DE LUZ IR
+        // CONTROLES DE DISPOSITIVO (Cámara ON/OFF, Luz IR)
         // ═══════════════════════════════════════════════════════════
-        JPanel lightStatusPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
-        lightStatusPanel.setBackground(bgCamera);
-        lightStatusPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        JPanel deviceControlPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 0));
+        deviceControlPanel.setBackground(bgCamera);
+        deviceControlPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
         
-        JLabel lightIcon = new JLabel(lightOn ? "💡" : "🔦");
-        lightStatusPanel.add(lightIcon);
-        
-        JLabel lightLabel = new JLabel("Luz IR: " + (lightOn ? "Encendida" : "Apagada"));
-        lightLabel.setFont(new Font("Segoe UI", Font.PLAIN, 11));
-        lightLabel.setForeground(lightOn ? new Color(250, 204, 21) : Color.GRAY);
-        lightStatusPanel.add(lightLabel);
-        
-        card.add(lightStatusPanel);
-        card.add(Box.createVerticalStrut(10));
-        
-        // ═══════════════════════════════════════════════════════════
-        // CONTROLES DE CÁMARA
-        // ═══════════════════════════════════════════════════════════
-        JPanel controlPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
-        controlPanel.setBackground(bgCamera);
-        controlPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        // Estado mutable para actualizar UI sin recargar
+        final boolean[] camStatus = {status};
+        final boolean[] irStatus = {lightOn};
         
         // Botón ON/OFF Cámara
-        JButton camToggleBtn = new JButton(status ? "📴 Apagar" : "📹 Encender");
-        camToggleBtn.setFont(new Font("Segoe UI", Font.BOLD, 10));
-        camToggleBtn.setPreferredSize(new Dimension(80, 26));
+        JButton camToggleBtn = new JButton(status ? "📴 OFF" : "📹 ON");
+        camToggleBtn.setFont(new Font("Segoe UI", Font.BOLD, 9));
+        camToggleBtn.setPreferredSize(new Dimension(55, 24));
         camToggleBtn.setBackground(status ? new Color(239, 68, 68) : new Color(74, 222, 128));
         camToggleBtn.setForeground(status ? Color.WHITE : Color.BLACK);
         camToggleBtn.setFocusPainted(false);
-        camToggleBtn.addActionListener(e -> {
-            client.controlDevice(id, status ? "OFF" : "ON");
-            log("📹 " + name + ": " + (status ? "Apagando" : "Encendiendo"));
-        });
-        controlPanel.add(camToggleBtn);
+        camToggleBtn.setToolTipText("Encender/Apagar cámara en Unity");
         
         // Botón toggle luz IR
-        JButton lightToggleBtn = new JButton(lightOn ? "🔦 IR OFF" : "💡 IR ON");
-        lightToggleBtn.setFont(new Font("Segoe UI", Font.BOLD, 10));
-        lightToggleBtn.setPreferredSize(new Dimension(70, 26));
+        JButton lightToggleBtn = new JButton(lightOn ? "🔦 OFF" : "💡 ON");
+        lightToggleBtn.setFont(new Font("Segoe UI", Font.BOLD, 9));
+        lightToggleBtn.setPreferredSize(new Dimension(55, 24));
         lightToggleBtn.setBackground(lightOn ? new Color(100, 80, 20) : new Color(60, 60, 60));
         lightToggleBtn.setForeground(Color.WHITE);
         lightToggleBtn.setFocusPainted(false);
-        lightToggleBtn.addActionListener(e -> {
-            int newValue = lightOn ? 0 : 100;
-            client.controlDevice(id, "SET_VALUE", String.valueOf(newValue));
-            log("📹 " + name + ": Luz IR " + (lightOn ? "OFF" : "ON"));
-        });
-        controlPanel.add(lightToggleBtn);
+        lightToggleBtn.setToolTipText("Encender/Apagar luz infrarroja");
         
-        card.add(controlPanel);
+        // Indicador de luz
+        JLabel lightIndicator = new JLabel(lightOn ? "💡" : "");
+        lightIndicator.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        
+        // Acción Cámara ON/OFF - Actualiza visualmente sin recargar
+        camToggleBtn.addActionListener(e -> {
+            boolean newStatus = !camStatus[0];
+            camStatus[0] = newStatus;
+            
+            // Actualizar UI inmediatamente
+            camToggleBtn.setText(newStatus ? "📴 OFF" : "📹 ON");
+            camToggleBtn.setBackground(newStatus ? new Color(239, 68, 68) : new Color(74, 222, 128));
+            camToggleBtn.setForeground(newStatus ? Color.WHITE : Color.BLACK);
+            statusDot.setForeground(newStatus ? new Color(74, 222, 128) : new Color(239, 68, 68));
+            
+            // Enviar comando al servidor
+            client.controlDevice(id, newStatus ? "ON" : "OFF");
+            log("📹 " + name + ": " + (newStatus ? "Encendiendo" : "Apagando"));
+        });
+        
+        // Acción Luz IR - Actualiza visualmente sin recargar
+        lightToggleBtn.addActionListener(e -> {
+            boolean newLightStatus = !irStatus[0];
+            irStatus[0] = newLightStatus;
+            
+            // Actualizar UI inmediatamente
+            lightToggleBtn.setText(newLightStatus ? "🔦 OFF" : "💡 ON");
+            lightToggleBtn.setBackground(newLightStatus ? new Color(100, 80, 20) : new Color(60, 60, 60));
+            lightIndicator.setText(newLightStatus ? "💡" : "");
+            
+            // Enviar comando al servidor
+            int newValue = newLightStatus ? 100 : 0;
+            client.controlDevice(id, "SET_VALUE", String.valueOf(newValue));
+            log("📹 " + name + ": Luz IR " + (newLightStatus ? "ON" : "OFF"));
+        });
+        
+        deviceControlPanel.add(camToggleBtn);
+        deviceControlPanel.add(lightToggleBtn);
+        deviceControlPanel.add(lightIndicator);
+        
+        card.add(deviceControlPanel);
         
         return card;
+    }
+    
+    /**
+     * Escalar imagen con alta calidad usando Graphics2D
+     */
+    private java.awt.image.BufferedImage scaleImageHighQuality(java.awt.image.BufferedImage src, int targetW, int targetH) {
+        java.awt.image.BufferedImage scaled = new java.awt.image.BufferedImage(targetW, targetH, java.awt.image.BufferedImage.TYPE_INT_RGB);
+        java.awt.Graphics2D g2d = scaled.createGraphics();
+        g2d.setRenderingHint(java.awt.RenderingHints.KEY_INTERPOLATION, java.awt.RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+        g2d.setRenderingHint(java.awt.RenderingHints.KEY_RENDERING, java.awt.RenderingHints.VALUE_RENDER_QUALITY);
+        g2d.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING, java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+        g2d.drawImage(src, 0, 0, targetW, targetH, null);
+        g2d.dispose();
+        return scaled;
+    }
+    
+    /**
+     * Abrir cámara en ventana de pantalla completa
+     */
+    private void openFullscreenCamera(String cameraName, String cameraId, String host) {
+        JDialog fullscreenDialog = new JDialog(this, "📹 " + cameraName + " - Pantalla Completa", false);
+        fullscreenDialog.setSize(1280, 800);
+        fullscreenDialog.setLocationRelativeTo(this);
+        fullscreenDialog.getContentPane().setBackground(Color.BLACK);
+        fullscreenDialog.setLayout(new BorderLayout());
+        
+        // Área de video grande
+        JLabel bigVideoLabel = new JLabel();
+        bigVideoLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        bigVideoLabel.setBackground(Color.BLACK);
+        bigVideoLabel.setOpaque(true);
+        bigVideoLabel.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        bigVideoLabel.setForeground(Color.GRAY);
+        bigVideoLabel.setText("Conectando...");
+        fullscreenDialog.add(bigVideoLabel, BorderLayout.CENTER);
+        
+        // Panel de controles abajo
+        JPanel controlBar = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 10));
+        controlBar.setBackground(new Color(30, 30, 30));
+        
+        JLabel fpsLabel = new JLabel("-- FPS");
+        fpsLabel.setForeground(Color.WHITE);
+        fpsLabel.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        controlBar.add(fpsLabel);
+        
+        JLabel resLabel = new JLabel("");
+        resLabel.setForeground(new Color(150, 150, 150));
+        resLabel.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+        controlBar.add(resLabel);
+        
+        JButton closeBtn = new JButton("✕ Cerrar");
+        closeBtn.setBackground(new Color(239, 68, 68));
+        closeBtn.setForeground(Color.WHITE);
+        closeBtn.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        controlBar.add(closeBtn);
+        
+        fullscreenDialog.add(controlBar, BorderLayout.SOUTH);
+        
+        // Streaming thread
+        final boolean[] running = {true};
+        Thread streamThread = new Thread(() -> {
+            int frameCount = 0;
+            long lastFpsTime = System.currentTimeMillis();
+            
+            while (running[0]) {
+                try {
+                    java.net.URL url = new java.net.URL("http://" + host + ":8081/camera/frame?id=" + cameraId);
+                    java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
+                    conn.setConnectTimeout(3000);
+                    conn.setReadTimeout(3000);
+                    
+                    if (conn.getResponseCode() == 200) {
+                        java.io.InputStream in = conn.getInputStream();
+                        java.awt.image.BufferedImage img = javax.imageio.ImageIO.read(in);
+                        in.close();
+                        
+                        if (img != null) {
+                            final int imgW = img.getWidth();
+                            final int imgH = img.getHeight();
+                            int w = bigVideoLabel.getWidth();
+                            int h = bigVideoLabel.getHeight();
+                            if (w > 0 && h > 0) {
+                                // Mantener aspect ratio
+                                double imgRatio = (double) imgW / imgH;
+                                double labelRatio = (double) w / h;
+                                int newW, newH;
+                                if (imgRatio > labelRatio) {
+                                    newW = w;
+                                    newH = (int) (w / imgRatio);
+                                } else {
+                                    newH = h;
+                                    newW = (int) (h * imgRatio);
+                                }
+                                // Usar escalado de alta calidad
+                                java.awt.image.BufferedImage scaled = scaleImageHighQuality(img, newW, newH);
+                                SwingUtilities.invokeLater(() -> {
+                                    bigVideoLabel.setIcon(new ImageIcon(scaled));
+                                    bigVideoLabel.setText("");
+                                    resLabel.setText(imgW + "x" + imgH + " → " + newW + "x" + newH);
+                                });
+                            }
+                            
+                            frameCount++;
+                            long now = System.currentTimeMillis();
+                            if (now - lastFpsTime >= 1000) {
+                                int fps = frameCount;
+                                frameCount = 0;
+                                lastFpsTime = now;
+                                SwingUtilities.invokeLater(() -> fpsLabel.setText(fps + " FPS"));
+                            }
+                        }
+                    }
+                    conn.disconnect();
+                    Thread.sleep(33); // ~30 FPS
+                    
+                } catch (Exception ex) {
+                    SwingUtilities.invokeLater(() -> {
+                        bigVideoLabel.setIcon(null);
+                        bigVideoLabel.setText("Sin señal - Esperando...");
+                    });
+                    try { Thread.sleep(1000); } catch (Exception ignored) {}
+                }
+            }
+        }, "FullscreenStream-" + cameraId);
+        streamThread.setDaemon(true);
+        streamThread.start();
+        
+        // Cerrar
+        closeBtn.addActionListener(e -> {
+            running[0] = false;
+            fullscreenDialog.dispose();
+        });
+        
+        fullscreenDialog.addWindowListener(new java.awt.event.WindowAdapter() {
+            @Override
+            public void windowClosing(java.awt.event.WindowEvent e) {
+                running[0] = false;
+            }
+        });
+        
+        fullscreenDialog.setVisible(true);
     }
     
     /**
@@ -1641,6 +1948,12 @@ public class SmartHomeClientGUI extends JFrame {
      * Logout
      */
     private void doLogout() {
+        // Cerrar panel de cámaras si está abierto
+        if (cameraDialog != null && cameraDialog.isVisible()) {
+            cameraViewerPanel.cleanup();
+            cameraDialog.dispose();
+        }
+        
         if (client != null) {
             client.disconnect();
         }
@@ -1654,6 +1967,33 @@ public class SmartHomeClientGUI extends JFrame {
         setContentPane(loginPanel);
         revalidate();
         repaint();
+    }
+    
+    /**
+     * Abrir visor de cámaras en ventana separada
+     */
+    private void openCameraViewer() {
+        if (cameraDialog != null && cameraDialog.isVisible()) {
+            cameraDialog.toFront();
+            return;
+        }
+        
+        cameraDialog = new JDialog(this, "📹 Cámaras de Seguridad - En Vivo", false);
+        cameraDialog.setSize(800, 600);
+        cameraDialog.setLocationRelativeTo(this);
+        
+        cameraViewerPanel = new CameraViewerPanel(this, serverHost);
+        cameraDialog.add(cameraViewerPanel);
+        
+        cameraDialog.addWindowListener(new java.awt.event.WindowAdapter() {
+            @Override
+            public void windowClosing(java.awt.event.WindowEvent e) {
+                cameraViewerPanel.cleanup();
+            }
+        });
+        
+        cameraDialog.setVisible(true);
+        log("📹 Abriendo visor de cámaras...");
     }
     
     /**

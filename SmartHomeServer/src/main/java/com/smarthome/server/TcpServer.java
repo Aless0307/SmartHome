@@ -78,6 +78,9 @@ public class TcpServer {
             restThread.setDaemon(true);
             restThread.start();
             
+            // Iniciar servidor de streaming de cámaras
+            CameraStreamServer.getInstance().start();
+            
             // Pequeña pausa para que los otros servidores inicien
             Thread.sleep(500);
             
@@ -90,6 +93,7 @@ public class TcpServer {
             System.out.println("  📡 TCP Puerto: " + PORT + " (Control principal)");
             System.out.println("  📢 UDP Puerto: 5001 (Notificaciones broadcast)");
             System.out.println("  🌐 REST Puerto: 8080 (API HTTP)");
+            System.out.println("  📹 Stream Puerto: 8081 (Cámaras HTTP) / 8082 (UDP frames)");
             System.out.println("  🧵 Pool de hilos: " + MAX_CLIENTS + " máximo");
             System.out.println("  🗄️  MongoDB: Conectado");
             System.out.println("  📱 Dispositivos: " + deviceService.count());
