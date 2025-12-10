@@ -11,14 +11,14 @@ import com.smarthome.model.*;
 import com.smarthome.security.JwtUtil;
 
 /**
- * ═══════════════════════════════════════════════════════════════
+ * ===============================================================
  * SERVIDOR TCP - Smart Home
  * Fase 3: Autenticación + Control de dispositivos con MongoDB
  * 
  * Protocolo JSON:
  * - Entrada: {"action": "COMANDO", "param1": "valor1", ...}
  * - Salida: {"status": "OK/ERROR", "message": "...", ...}
- * ═══════════════════════════════════════════════════════════════
+ * ===============================================================
  */
 public class TcpServer {
     
@@ -88,18 +88,18 @@ public class TcpServer {
             serverSocket = new ServerSocket(PORT);
             threadPool = Executors.newFixedThreadPool(MAX_CLIENTS);
             
-            System.out.println("\n═══════════════════════════════════════════════════════");
+            System.out.println("\n=======================================================");
             System.out.println("  [HOME] SMART HOME - Servidor Completo");
             System.out.println("  [NET] TCP Puerto: " + PORT + " (Control principal)");
-            System.out.println("  📢 UDP Puerto: 5001 (Notificaciones broadcast)");
+            System.out.println("  [UDP] UDP Puerto: 5001 (Notificaciones broadcast)");
             System.out.println("  [WEB] REST Puerto: 8080 (API HTTP)");
             System.out.println("  [CAM] Stream Puerto: 8081 (Cámaras HTTP) / 8082 (UDP frames)");
-            System.out.println("  🧵 Pool de hilos: " + MAX_CLIENTS + " máximo");
+            System.out.println("  [POOL] Pool de hilos: " + MAX_CLIENTS + " máximo");
             System.out.println("  [DB]  MongoDB: Conectado");
             System.out.println("  [DEV] Dispositivos: " + deviceService.count());
-            System.out.println("  👥 Usuarios: " + userService.count());
+            System.out.println("  [USERS] Usuarios: " + userService.count());
             System.out.println("  [WAIT] Esperando conexiones...");
-            System.out.println("═══════════════════════════════════════════════════════");
+            System.out.println("=======================================================");
             
             // Bucle principal
             while (running) {
@@ -140,9 +140,9 @@ public class TcpServer {
     }
     
     /**
-     * ═══════════════════════════════════════════════════════════════
+     * ===============================================================
      * CLASE INTERNA: Manejador de Cliente
-     * ═══════════════════════════════════════════════════════════════
+     * ===============================================================
      */
     private class ClientHandler implements Runnable {
         
@@ -171,7 +171,7 @@ public class TcpServer {
         @Override
         public void run() {
             String threadName = Thread.currentThread().getName();
-            System.out.println("🧵 Cliente #" + clientId + " asignado a: " + threadName);
+            System.out.println("[POOL] Cliente #" + clientId + " asignado a: " + threadName);
             
             try {
                 handleClient();
@@ -199,7 +199,7 @@ public class TcpServer {
                 // Leer mensajes
                 String line;
                 while ((line = input.readLine()) != null) {
-                    System.out.println("📨 [Cliente #" + clientId + "] " + line);
+                    System.out.println("[MSG] [Cliente #" + clientId + "] " + line);
                     processMessage(line);
                 }
                 
@@ -275,9 +275,9 @@ public class TcpServer {
             }
         }
         
-        // ═══════════════════════════════════════════════════════════
+        // ===========================================================
         // HANDLERS DE ACCIONES
-        // ═══════════════════════════════════════════════════════════
+        // ===========================================================
         
         private void handlePing() {
             sendResponse(new JsonMessage()
@@ -304,8 +304,8 @@ public class TcpServer {
                 // Generar token JWT real
                 sessionToken = JwtUtil.generateToken(user.getUsername(), user.getRole());
                 
-                System.out.println("👤 Login exitoso: " + username + " (Cliente #" + clientId + ")");
-                System.out.println("🔐 JWT generado para: " + username);
+                System.out.println("[USER] Login exitoso: " + username + " (Cliente #" + clientId + ")");
+                System.out.println("[AUTH] JWT generado para: " + username);
                 
                 sendResponse(new JsonMessage()
                     .put("status", "OK")

@@ -7,7 +7,7 @@ import java.util.concurrent.*;
 import com.smarthome.protocol.JsonMessage;
 
 /**
- * ═══════════════════════════════════════════════════════════════
+ * ===============================================================
  * SERVIDOR UDP - Smart Home
  * Actividad 1.4: Servidor UDP para notificaciones broadcast
  * 
@@ -18,7 +18,7 @@ import com.smarthome.protocol.JsonMessage;
  * 
  * Uso: Los clientes se registran enviando {"action": "REGISTER"}
  *      y luego reciben notificaciones de cambios en dispositivos
- * ═══════════════════════════════════════════════════════════════
+ * ===============================================================
  */
 public class UdpServer implements Runnable {
     
@@ -54,7 +54,7 @@ public class UdpServer implements Runnable {
     public void run() {
         try {
             socket = new DatagramSocket(PORT);
-            System.out.println("  📢 UDP Server escuchando en puerto: " + PORT);
+            System.out.println("  [UDP] UDP Server escuchando en puerto: " + PORT);
             
             byte[] buffer = new byte[BUFFER_SIZE];
             
@@ -71,7 +71,7 @@ public class UdpServer implements Runnable {
                     InetAddress clientAddress = packet.getAddress();
                     int clientPort = packet.getPort();
                     
-                    System.out.println("📨 [UDP] De " + clientAddress.getHostAddress() + ":" + clientPort + " -> " + message);
+                    System.out.println("[MSG] [UDP] De " + clientAddress.getHostAddress() + ":" + clientPort + " -> " + message);
                     
                     // Procesar el mensaje
                     processMessage(message, clientAddress, clientPort);
@@ -168,14 +168,14 @@ public class UdpServer implements Runnable {
     }
     
     /**
-     * ═══════════════════════════════════════════════════════════════
+     * ===============================================================
      * BROADCAST - Envía mensaje a TODOS los clientes registrados
      * Este método será llamado desde TcpServer cuando haya cambios
-     * ═══════════════════════════════════════════════════════════════
+     * ===============================================================
      */
     public void broadcast(JsonMessage message) {
         if (registeredClients.isEmpty()) {
-            System.out.println("📢 [UDP] No hay clientes registrados para broadcast");
+            System.out.println("[UDP] [UDP] No hay clientes registrados para broadcast");
             return;
         }
         
@@ -196,7 +196,7 @@ public class UdpServer implements Runnable {
             }
         }
         
-        System.out.println("📢 [UDP] Broadcast enviado a " + sent + "/" + registeredClients.size() + " clientes");
+        System.out.println("[UDP] [UDP] Broadcast enviado a " + sent + "/" + registeredClients.size() + " clientes");
     }
     
     /**
@@ -228,16 +228,16 @@ public class UdpServer implements Runnable {
         if (socket != null && !socket.isClosed()) {
             socket.close();
         }
-        System.out.println("  📢 UDP Server detenido");
+        System.out.println("  [UDP] UDP Server detenido");
     }
     
     /**
      * Método main para probar el servidor UDP independientemente
      */
     public static void main(String[] args) {
-        System.out.println("═══════════════════════════════════════════════════════");
+        System.out.println("=======================================================");
         System.out.println("  [HOME] SMART HOME - Servidor UDP (Standalone)");
-        System.out.println("═══════════════════════════════════════════════════════");
+        System.out.println("=======================================================");
         
         UdpServer server = new UdpServer();
         

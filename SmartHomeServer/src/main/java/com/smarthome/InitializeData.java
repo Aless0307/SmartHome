@@ -40,7 +40,7 @@ public class InitializeData {
             System.out.println("Casa: " + myHouse);
             
             // ==================== CREAR USUARIO ADMIN ====================
-            System.out.println("\n👤 Creando usuario admin...");
+            System.out.println("\n[USER] Creando usuario admin...");
             
             User admin = userService.findByUsername("admin");
             if (admin != null) {

@@ -292,7 +292,7 @@ public class RestServer {
                     return;
                 }
                 String username = JwtUtil.getUsername(token);
-                System.out.println("🔐 REST autenticado: " + username);
+                System.out.println("[AUTH] REST autenticado: " + username);
             }
             
             String body = readBody(exchange);
