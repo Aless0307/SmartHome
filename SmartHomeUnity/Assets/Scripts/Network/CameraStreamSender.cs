@@ -98,11 +98,12 @@ public class CameraStreamSender : MonoBehaviour
 
     void Start()
     {
-        // Detectar cámaras después de un pequeño delay
-        Invoke("DetectCameras", 1f);
+        // Esperar más tiempo para que los dispositivos se carguen del servidor
+        // Los dispositivos vienen de MongoDB y tardan unos segundos
+        Invoke("DetectCameras", 4f);
         
-        // Iniciar sistema de streaming
-        Invoke("StartStreamSystem", 2f);
+        // Iniciar sistema de streaming después de detectar cámaras
+        Invoke("StartStreamSystem", 5f);
     }
 
     /// <summary>
@@ -130,12 +131,12 @@ public class CameraStreamSender : MonoBehaviour
             var state = new CameraStreamState
             {
                 texture = new Texture2D(streamWidth, streamHeight, TextureFormat.RGB24, false),
-                wasOn = false,
+                wasOn = cam.isCameraOn, // Inicializar con estado REAL de la cámara
                 lastFrameTime = 0
             };
             
             cameraStates[cam] = state;
-            Debug.Log($"📹 {cam.cameraName}: Preparado para stream {streamWidth}x{streamHeight}");
+            Debug.Log($"📹 {cam.cameraName}: Preparado para stream {streamWidth}x{streamHeight} (estado: {(cam.isCameraOn ? "ON" : "OFF")})");
         }
         
         Debug.Log($"📹 CameraStreamSender: {cameraStates.Count} cámaras detectadas (stream on-demand)");

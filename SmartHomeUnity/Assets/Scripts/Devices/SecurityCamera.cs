@@ -45,7 +45,7 @@ public class SecurityCamera : MonoBehaviour
     public float lightRange = 10f;
 
     [Header("Estado")]
-    public bool isCameraOn = true;
+    public bool isCameraOn = false;  // Iniciar APAGADA, el servidor mandará el estado real
     public bool isLightOn = false;
     public bool isRecording = false;
 
@@ -71,11 +71,14 @@ public class SecurityCamera : MonoBehaviour
 
     void Start()
     {
+        // FORZAR apagada al inicio - el servidor mandará el estado real
+        isCameraOn = false;
+        
         SetupCamera();
         SetupLight();
         UpdateVisuals();
         
-        Debug.Log($"📹 {cameraName}: Inicializada en {location}");
+        Debug.Log($"📹 {cameraName}: Inicializada en {location} (esperando estado del servidor)");
     }
 
     /// <summary>
