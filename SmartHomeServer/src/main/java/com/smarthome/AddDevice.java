@@ -36,10 +36,10 @@ public class AddDevice {
             echoDot.setStatus(false); // Apagado (no reproduciendo)
             echoDot.setValue(80);     // Volumen 80%
             deviceService.create(echoDot);
-            System.out.println("   ✅ Echo Dot [sala] - Volumen: 80%");
+            System.out.println("   [OK] Echo Dot [sala] - Volumen: 80%");
             
             // Mostrar dispositivos
-            System.out.println("\n📱 DISPOSITIVOS TOTALES: " + deviceService.count());
+            System.out.println("\n[DEV] DISPOSITIVOS TOTALES: " + deviceService.count());
             for (Device d : deviceService.findAll()) {
                 String status = d.isStatus() ? "🟢 ON" : "🔴 OFF";
                 String extra = "";
@@ -50,10 +50,10 @@ public class AddDevice {
                                    d.getRoom() + " " + status + extra);
             }
             
-            System.out.println("\n✅ ¡Echo Dot agregado correctamente!");
+            System.out.println("\n[OK] ¡Echo Dot agregado correctamente!");
             
         } catch (Exception e) {
-            System.err.println("❌ Error: " + e.getMessage());
+            System.err.println("[ERROR] Error: " + e.getMessage());
             e.printStackTrace();
         } finally {
             MongoDBConnection.getInstance().close();

@@ -43,33 +43,33 @@ public class CleanDevices {
             
             DeviceService deviceService = new DeviceService();
             
-            System.out.println("📱 DISPOSITIVOS ANTES: " + deviceService.count());
+            System.out.println("[DEV] DISPOSITIVOS ANTES: " + deviceService.count());
             
             // Eliminar duplicados - mantener solo la primera ocurrencia de cada nombre
             Set<String> seen = new HashSet<>();
             
             for (Device d : deviceService.findAll()) {
                 if (!keepDevices.contains(d.getName()) || seen.contains(d.getName())) {
-                    System.out.println("   ❌ Eliminando: " + d.getName() + " (duplicado o no deseado)");
+                    System.out.println("   [ERROR] Eliminando: " + d.getName() + " (duplicado o no deseado)");
                     deviceService.delete(d.getIdString());
                 } else {
-                    System.out.println("   ✅ Manteniendo: " + d.getName());
+                    System.out.println("   [OK] Manteniendo: " + d.getName());
                     seen.add(d.getName());
                 }
             }
             
             // Mostrar resultado
-            System.out.println("\n📱 DISPOSITIVOS DESPUÉS: " + deviceService.count());
+            System.out.println("\n[DEV] DISPOSITIVOS DESPUÉS: " + deviceService.count());
             for (Device d : deviceService.findAll()) {
                 String status = d.isStatus() ? "🟢 ON" : "🔴 OFF";
                 System.out.println("   - " + d.getName() + " [" + d.getType() + "] " + 
                                    d.getRoom() + " " + status);
             }
             
-            System.out.println("\n✅ ¡Limpieza completada!");
+            System.out.println("\n[OK] ¡Limpieza completada!");
             
         } catch (Exception e) {
-            System.err.println("❌ Error: " + e.getMessage());
+            System.err.println("[ERROR] Error: " + e.getMessage());
             e.printStackTrace();
         } finally {
             MongoDBConnection.getInstance().close();

@@ -59,17 +59,17 @@ public class JwtUtil {
                     .parseClaimsJws(token);
             return true;
         } catch (ExpiredJwtException e) {
-            System.err.println("❌ Token expirado: " + e.getMessage());
+            System.err.println("[ERROR] Token expirado: " + e.getMessage());
         } catch (UnsupportedJwtException e) {
-            System.err.println("❌ Token no soportado: " + e.getMessage());
+            System.err.println("[ERROR] Token no soportado: " + e.getMessage());
         } catch (MalformedJwtException e) {
-            System.err.println("❌ Token malformado: " + e.getMessage());
+            System.err.println("[ERROR] Token malformado: " + e.getMessage());
         } catch (SignatureException e) {
-            System.err.println("❌ Firma inválida: " + e.getMessage());
+            System.err.println("[ERROR] Firma inválida: " + e.getMessage());
         } catch (IllegalArgumentException e) {
-            System.err.println("❌ Token vacío: " + e.getMessage());
+            System.err.println("[ERROR] Token vacío: " + e.getMessage());
         } catch (Exception e) {
-            System.err.println("❌ Error validando token: " + e.getMessage());
+            System.err.println("[ERROR] Error validando token: " + e.getMessage());
         }
         return false;
     }

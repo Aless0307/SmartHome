@@ -24,9 +24,9 @@ public class MongoDBConnection {
             System.out.println("Conectando a MongoDB Atlas...");
             mongoClient = MongoClients.create(CONNECTION_URI);
             database = mongoClient.getDatabase(DATABASE_NAME);
-            System.out.println("✅ Conexión a MongoDB establecida - Base de datos: " + DATABASE_NAME);
+            System.out.println("[OK] Conexión a MongoDB establecida - Base de datos: " + DATABASE_NAME);
         } catch (Exception e) {
-            System.err.println("❌ Error al conectar a MongoDB: " + e.getMessage());
+            System.err.println("[ERROR] Error al conectar a MongoDB: " + e.getMessage());
             throw new RuntimeException("No se pudo conectar a MongoDB", e);
         }
     }
@@ -71,10 +71,10 @@ public class MongoDBConnection {
     public boolean testConnection() {
         try {
             database.runCommand(new Document("ping", 1));
-            System.out.println("✅ Ping a MongoDB exitoso");
+            System.out.println("[OK] Ping a MongoDB exitoso");
             return true;
         } catch (Exception e) {
-            System.err.println("❌ Error en ping: " + e.getMessage());
+            System.err.println("[ERROR] Error en ping: " + e.getMessage());
             return false;
         }
     }
@@ -87,7 +87,7 @@ public class MongoDBConnection {
             MongoDBConnection conn = MongoDBConnection.getInstance();
             
             if (conn.testConnection()) {
-                System.out.println("\n✅ ¡Conexión exitosa a MongoDB Atlas!");
+                System.out.println("\n[OK] ¡Conexión exitosa a MongoDB Atlas!");
                 
                 // Listar colecciones existentes
                 System.out.println("\nColecciones en la base de datos '" + DATABASE_NAME + "':");
@@ -99,7 +99,7 @@ public class MongoDBConnection {
             conn.close();
             
         } catch (Exception e) {
-            System.err.println("❌ Error: " + e.getMessage());
+            System.err.println("[ERROR] Error: " + e.getMessage());
             e.printStackTrace();
         }
     }

@@ -34,7 +34,7 @@ public class DeviceService {
         Document doc = device.toDocument();
         collection.insertOne(doc);
         device.setId(doc.getObjectId("_id"));
-        System.out.println("✅ Dispositivo creado: " + device.getName());
+        System.out.println("[OK] Dispositivo creado: " + device.getName());
         return device;
     }
     
@@ -244,7 +244,7 @@ public class DeviceService {
         sensor.setHouseId(houseId);
         create(sensor);
         
-        System.out.println("✅ Dispositivos de prueba creados: " + count());
+        System.out.println("[OK] Dispositivos de prueba creados: " + count());
     }
     
     // Main para probar

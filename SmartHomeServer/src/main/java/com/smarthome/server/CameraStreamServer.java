@@ -91,7 +91,7 @@ public class CameraStreamServer {
             httpServer.setExecutor(executor);
             httpServer.start();
             
-            System.out.println("  📹 Camera Stream Server HTTP en puerto: " + HTTP_PORT);
+            System.out.println("  [CAMERA] Stream Server HTTP en puerto: " + HTTP_PORT);
             
             // Iniciar receptor UDP para frames de Unity (legacy, baja resolución)
             startUdpReceiver();
@@ -102,7 +102,7 @@ public class CameraStreamServer {
             running = true;
             
         } catch (Exception e) {
-            System.err.println("❌ Error iniciando CameraStreamServer: " + e.getMessage());
+            System.err.println("[ERROR] Error iniciando CameraStreamServer: " + e.getMessage());
             e.printStackTrace();
         }
     }
@@ -114,7 +114,7 @@ public class CameraStreamServer {
         executor.submit(() -> {
             try {
                 udpSocket = new DatagramSocket(UDP_PORT);
-                System.out.println("  📡 Camera UDP Receiver en puerto: " + UDP_PORT);
+                System.out.println("  [UDP] Camera Receiver en puerto: " + UDP_PORT);
                 
                 byte[] buffer = new byte[MAX_FRAME_SIZE];
                 
@@ -133,7 +133,7 @@ public class CameraStreamServer {
                     }
                 }
             } catch (Exception e) {
-                System.err.println("❌ Error en UDP receiver: " + e.getMessage());
+                System.err.println("[ERROR] Error en UDP receiver: " + e.getMessage());
             }
         });
     }
@@ -182,12 +182,12 @@ public class CameraStreamServer {
         executor.submit(() -> {
             try {
                 tcpServerSocket = new ServerSocket(TCP_PORT);
-                System.out.println("  📡 Camera TCP Receiver (HD) en puerto: " + TCP_PORT);
+                System.out.println("  [TCP] Camera Receiver HD en puerto: " + TCP_PORT);
                 
                 while (running) {
                     try {
                         Socket clientSocket = tcpServerSocket.accept();
-                        System.out.println("📹 Unity camera conectada via TCP desde: " + 
+                        System.out.println("[TCP] Unity camera conectada desde: " + 
                             clientSocket.getInetAddress());
                         
                         // Manejar cada conexión en un hilo separado
@@ -200,7 +200,7 @@ public class CameraStreamServer {
                     }
                 }
             } catch (Exception e) {
-                System.err.println("❌ Error en TCP receiver: " + e.getMessage());
+                System.err.println("[ERROR] Error en TCP receiver: " + e.getMessage());
             }
         });
     }
@@ -222,7 +222,7 @@ public class CameraStreamServer {
                     int frameLength = in.readInt();
                     
                     if (frameLength <= 0 || frameLength > MAX_FRAME_SIZE) {
-                        System.err.println("❌ Frame length inválido: " + frameLength);
+                        System.err.println("[ERROR] Frame length invalido: " + frameLength);
                         continue;
                     }
                     
@@ -244,12 +244,12 @@ public class CameraStreamServer {
                 }
             }
         } catch (Exception e) {
-            System.err.println("❌ Error en TCP client handler: " + e.getMessage());
+            System.err.println("[ERROR] Error en TCP client handler: " + e.getMessage());
         } finally {
             try {
                 socket.close();
             } catch (IOException e) {}
-            System.out.println("📹 Unity camera TCP desconectada");
+            System.out.println("[TCP] Unity camera desconectada");
         }
     }
     
@@ -298,7 +298,7 @@ public class CameraStreamServer {
                 return;
             }
             
-            System.out.println("📹 Cliente conectado a stream: " + cameraId);
+            System.out.println("[STREAM] Cliente conectado: " + cameraId);
             
             // Headers para MJPEG streaming
             exchange.getResponseHeaders().set("Content-Type", "multipart/x-mixed-replace; boundary=boundary");
@@ -326,7 +326,7 @@ public class CameraStreamServer {
                 if (clients != null) {
                     clients.remove(out);
                 }
-                System.out.println("📹 Cliente desconectado de: " + cameraId);
+                System.out.println("[STREAM] Cliente desconectado: " + cameraId);
             }
         }
     }

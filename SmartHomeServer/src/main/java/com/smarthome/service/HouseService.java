@@ -33,7 +33,7 @@ public class HouseService {
         Document doc = house.toDocument();
         collection.insertOne(doc);
         house.setId(doc.getObjectId("_id"));
-        System.out.println("✅ Casa creada: " + house.getName());
+        System.out.println("[OK] Casa creada: " + house.getName());
         return house;
     }
     

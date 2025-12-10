@@ -28,7 +28,7 @@ public class AddCameras {
             House myHouse = houseService.findAll().get(0);
             String houseId = myHouse.getIdString();
             
-            System.out.println("📹 Creando cámaras de seguridad...\n");
+            System.out.println("[CAM] Creando cámaras de seguridad...\n");
             
             // Cámara 1 - Entrada
             Device cam1 = new Device("Cámara Entrada", "camera", "entrada");
@@ -37,7 +37,7 @@ public class AddCameras {
             cam1.setValue(0);      // 0 = luz IR apagada, 100 = luz IR encendida
             cam1.setColor("");     // Usado para comandos especiales
             deviceService.create(cam1);
-            System.out.println("   ✅ Cámara Entrada [entrada] - 📹 ON | 💡 IR OFF");
+            System.out.println("   [OK] Cámara Entrada [entrada] - [CAM] ON | [LIGHT] IR OFF");
             
             // Cámara 2 - Jardín
             Device cam2 = new Device("Cámara Jardín", "camera", "jardin");
@@ -46,7 +46,7 @@ public class AddCameras {
             cam2.setValue(0);      // Luz IR apagada
             cam2.setColor("");
             deviceService.create(cam2);
-            System.out.println("   ✅ Cámara Jardín [jardin] - 📹 ON | 💡 IR OFF");
+            System.out.println("   [OK] Cámara Jardín [jardin] - [CAM] ON | [LIGHT] IR OFF");
             
             // Cámara 3 - Garage
             Device cam3 = new Device("Cámara Garage", "camera", "garage");
@@ -55,27 +55,27 @@ public class AddCameras {
             cam3.setValue(0);      // Luz IR apagada
             cam3.setColor("");
             deviceService.create(cam3);
-            System.out.println("   ✅ Cámara Garage [garage] - 📹 ON | 💡 IR OFF");
+            System.out.println("   [OK] Cámara Garage [garage] - [CAM] ON | [LIGHT] IR OFF");
             
             // Mostrar dispositivos
-            System.out.println("\n📱 DISPOSITIVOS TOTALES: " + deviceService.count());
-            System.out.println("\n📹 CÁMARAS:");
+            System.out.println("\n[DEV] DISPOSITIVOS TOTALES: " + deviceService.count());
+            System.out.println("\n[CAM] CÁMARAS:");
             for (Device d : deviceService.findAll()) {
                 if ("camera".equals(d.getType())) {
-                    String status = d.isStatus() ? "📹 ON" : "📹 OFF";
-                    String light = d.getValue() > 0 ? "💡 IR ON" : "💡 IR OFF";
+                    String status = d.isStatus() ? "[CAM] ON" : "[CAM] OFF";
+                    String light = d.getValue() > 0 ? "[LIGHT] IR ON" : "[LIGHT] IR OFF";
                     System.out.println("   - " + d.getName() + " [" + d.getRoom() + "] " + status + " | " + light);
                 }
             }
             
-            System.out.println("\n✅ ¡Cámaras agregadas correctamente!");
-            System.out.println("\n📌 Notas:");
+            System.out.println("\n[OK] ¡Cámaras agregadas correctamente!");
+            System.out.println("\n[NOTE] Notas:");
             System.out.println("   - status: true = cámara encendida, false = apagada");
             System.out.println("   - value: 0 = luz IR apagada, 100 = luz IR encendida");
             System.out.println("   - color: usado para comandos especiales (CMD:RECORD_START, etc)");
             
         } catch (Exception e) {
-            System.err.println("❌ Error: " + e.getMessage());
+            System.err.println("[ERROR] Error: " + e.getMessage());
             e.printStackTrace();
         } finally {
             MongoDBConnection.getInstance().close();

@@ -78,13 +78,13 @@ public class UdpServer implements Runnable {
                     
                 } catch (IOException e) {
                     if (running) {
-                        System.err.println("❌ [UDP] Error recibiendo: " + e.getMessage());
+                        System.err.println("[ERROR] [UDP] Error recibiendo: " + e.getMessage());
                     }
                 }
             }
             
         } catch (SocketException e) {
-            System.err.println("❌ [UDP] Error iniciando servidor: " + e.getMessage());
+            System.err.println("[ERROR] [UDP] Error iniciando servidor: " + e.getMessage());
         }
     }
     
@@ -108,7 +108,7 @@ public class UdpServer implements Runnable {
                 case "REGISTER":
                     // Registrar cliente para recibir notificaciones
                     registeredClients.put(clientKey, new InetSocketAddress(address, port));
-                    System.out.println("✅ [UDP] Cliente registrado: " + clientKey + " (Total: " + registeredClients.size() + ")");
+                    System.out.println("[OK] [UDP] Cliente registrado: " + clientKey + " (Total: " + registeredClients.size() + ")");
                     
                     sendTo(address, port, new JsonMessage()
                         .put("status", "OK")
@@ -119,7 +119,7 @@ public class UdpServer implements Runnable {
                 case "UNREGISTER":
                     // Desregistrar cliente
                     registeredClients.remove(clientKey);
-                    System.out.println("🔌 [UDP] Cliente desregistrado: " + clientKey);
+                    System.out.println("[CONN] [UDP] Cliente desregistrado: " + clientKey);
                     
                     sendTo(address, port, new JsonMessage()
                         .put("status", "OK")
@@ -149,7 +149,7 @@ public class UdpServer implements Runnable {
             }
             
         } catch (Exception e) {
-            System.err.println("❌ [UDP] Error procesando: " + e.getMessage());
+            System.err.println("[ERROR] [UDP] Error procesando: " + e.getMessage());
             sendTo(address, port, JsonMessage.error("Error: " + e.getMessage()));
         }
     }
@@ -163,7 +163,7 @@ public class UdpServer implements Runnable {
             DatagramPacket packet = new DatagramPacket(data, data.length, address, port);
             socket.send(packet);
         } catch (IOException e) {
-            System.err.println("❌ [UDP] Error enviando a " + address + ":" + port);
+            System.err.println("[ERROR] [UDP] Error enviando a " + address + ":" + port);
         }
     }
     
@@ -192,7 +192,7 @@ public class UdpServer implements Runnable {
                 socket.send(packet);
                 sent++;
             } catch (IOException e) {
-                System.err.println("❌ [UDP] Error enviando broadcast a " + clientAddr);
+                System.err.println("[ERROR] [UDP] Error enviando broadcast a " + clientAddr);
             }
         }
         
@@ -236,13 +236,13 @@ public class UdpServer implements Runnable {
      */
     public static void main(String[] args) {
         System.out.println("═══════════════════════════════════════════════════════");
-        System.out.println("  🏠 SMART HOME - Servidor UDP (Standalone)");
+        System.out.println("  [HOME] SMART HOME - Servidor UDP (Standalone)");
         System.out.println("═══════════════════════════════════════════════════════");
         
         UdpServer server = new UdpServer();
         
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            System.out.println("\n⚠️  Cerrando servidor UDP...");
+            System.out.println("\n[WARN]  Cerrando servidor UDP...");
             server.stop();
         }));
         

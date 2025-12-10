@@ -34,7 +34,7 @@ public class RestServer {
     
     public void start() throws IOException {
         // Inicializar MongoDB
-        System.out.println("🔌 Conectando a MongoDB...");
+        System.out.println("[CONN] Conectando a MongoDB...");
         MongoDBConnection.getInstance();
         
         // Inicializar servicios
@@ -57,13 +57,13 @@ public class RestServer {
         server.setExecutor(null);
         server.start();
         
-        System.out.println("\n═══════════════════════════════════════════════════════");
-        System.out.println("  🌐 SMART HOME - Servidor REST");
-        System.out.println("  📡 Puerto: " + PORT);
-        System.out.println("  🗄️  MongoDB: Conectado");
-        System.out.println("  📱 Dispositivos: " + deviceService.count());
-        System.out.println("═══════════════════════════════════════════════════════");
-        System.out.println("\n📌 Endpoints disponibles:");
+        System.out.println("\n=======================================================");
+        System.out.println("  [REST] SMART HOME - Servidor REST");
+        System.out.println("  [NET] Puerto: " + PORT);
+        System.out.println("  [DB] MongoDB: Conectado");
+        System.out.println("  [DEV] Dispositivos: " + deviceService.count());
+        System.out.println("=======================================================");
+        System.out.println("\n[INFO] Endpoints disponibles:");
         System.out.println("  GET  http://localhost:" + PORT + "/              - Panel de control");
         System.out.println("  GET  http://localhost:" + PORT + "/api/devices   - Lista dispositivos");
         System.out.println("  GET  http://localhost:" + PORT + "/api/device?id=X - Info dispositivo");
@@ -71,7 +71,7 @@ public class RestServer {
         System.out.println("  GET  http://localhost:" + PORT + "/api/users     - Lista usuarios");
         System.out.println("  POST http://localhost:" + PORT + "/api/login     - Login");
         System.out.println("  POST http://localhost:" + PORT + "/api/control   - Controlar dispositivo");
-        System.out.println("\n⏳ Servidor listo...");
+        System.out.println("\n[OK] Servidor listo...");
     }
     
     public void stop() {
@@ -563,14 +563,14 @@ public class RestServer {
         RestServer server = new RestServer();
         
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            System.out.println("\n⚠️  Cerrando servidor...");
+            System.out.println("\n[WARN] Cerrando servidor...");
             server.stop();
         }));
         
         try {
             server.start();
         } catch (IOException e) {
-            System.err.println("❌ Error: " + e.getMessage());
+            System.err.println("[ERROR] Error: " + e.getMessage());
             e.printStackTrace();
         }
     }

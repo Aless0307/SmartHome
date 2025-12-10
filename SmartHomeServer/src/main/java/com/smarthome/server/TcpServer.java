@@ -52,7 +52,7 @@ public class TcpServer {
     public void start() {
         try {
             // Inicializar conexión a MongoDB
-            System.out.println("🔌 Conectando a MongoDB...");
+            System.out.println("[CONN] Conectando a MongoDB...");
             MongoDBConnection.getInstance();
             
             // Inicializar servicios
@@ -72,7 +72,7 @@ public class TcpServer {
                 try {
                     restServer.start();
                 } catch (Exception e) {
-                    System.err.println("❌ Error iniciando REST: " + e.getMessage());
+                    System.err.println("[ERROR] Error iniciando REST: " + e.getMessage());
                 }
             }, "REST-Server");
             restThread.setDaemon(true);
@@ -89,16 +89,16 @@ public class TcpServer {
             threadPool = Executors.newFixedThreadPool(MAX_CLIENTS);
             
             System.out.println("\n═══════════════════════════════════════════════════════");
-            System.out.println("  🏠 SMART HOME - Servidor Completo");
-            System.out.println("  📡 TCP Puerto: " + PORT + " (Control principal)");
+            System.out.println("  [HOME] SMART HOME - Servidor Completo");
+            System.out.println("  [NET] TCP Puerto: " + PORT + " (Control principal)");
             System.out.println("  📢 UDP Puerto: 5001 (Notificaciones broadcast)");
-            System.out.println("  🌐 REST Puerto: 8080 (API HTTP)");
-            System.out.println("  📹 Stream Puerto: 8081 (Cámaras HTTP) / 8082 (UDP frames)");
+            System.out.println("  [WEB] REST Puerto: 8080 (API HTTP)");
+            System.out.println("  [CAM] Stream Puerto: 8081 (Cámaras HTTP) / 8082 (UDP frames)");
             System.out.println("  🧵 Pool de hilos: " + MAX_CLIENTS + " máximo");
-            System.out.println("  🗄️  MongoDB: Conectado");
-            System.out.println("  📱 Dispositivos: " + deviceService.count());
+            System.out.println("  [DB]  MongoDB: Conectado");
+            System.out.println("  [DEV] Dispositivos: " + deviceService.count());
             System.out.println("  👥 Usuarios: " + userService.count());
-            System.out.println("  ⏳ Esperando conexiones...");
+            System.out.println("  [WAIT] Esperando conexiones...");
             System.out.println("═══════════════════════════════════════════════════════");
             
             // Bucle principal
@@ -109,7 +109,7 @@ public class TcpServer {
                     
                     String clientInfo = clientSocket.getInetAddress().getHostAddress() 
                                       + ":" + clientSocket.getPort();
-                    System.out.println("\n✅ Cliente #" + clientCount + " conectado: " + clientInfo);
+                    System.out.println("\n[OK] Cliente #" + clientCount + " conectado: " + clientInfo);
                     
                     ClientHandler handler = new ClientHandler(clientSocket, clientCount);
                     connectedClients.put(clientCount, handler);
@@ -117,13 +117,13 @@ public class TcpServer {
                     
                 } catch (IOException e) {
                     if (running) {
-                        System.err.println("❌ Error aceptando conexión: " + e.getMessage());
+                        System.err.println("[ERROR] Error aceptando conexión: " + e.getMessage());
                     }
                 }
             }
             
         } catch (Exception e) {
-            System.err.println("❌ Error iniciando servidor: " + e.getMessage());
+            System.err.println("[ERROR] Error iniciando servidor: " + e.getMessage());
             e.printStackTrace();
         }
     }
@@ -176,7 +176,7 @@ public class TcpServer {
             try {
                 handleClient();
             } catch (Exception e) {
-                System.err.println("❌ Error en cliente #" + clientId + ": " + e.getMessage());
+                System.err.println("[ERROR] Error en cliente #" + clientId + ": " + e.getMessage());
             } finally {
                 connectedClients.remove(clientId);
             }
@@ -203,14 +203,14 @@ public class TcpServer {
                     processMessage(line);
                 }
                 
-                System.out.println("🔌 Cliente #" + clientId + " desconectado");
+                System.out.println("[CONN] Cliente #" + clientId + " desconectado");
                 
                 input.close();
                 output.close();
                 clientSocket.close();
                 
             } catch (IOException e) {
-                System.err.println("❌ Error cliente #" + clientId + ": " + e.getMessage());
+                System.err.println("[ERROR] Error cliente #" + clientId + ": " + e.getMessage());
             }
         }
         
@@ -270,7 +270,7 @@ public class TcpServer {
                 }
                 
             } catch (Exception e) {
-                System.err.println("❌ Error procesando: " + e.getMessage());
+                System.err.println("[ERROR] Error procesando: " + e.getMessage());
                 sendResponse(JsonMessage.error("Error: " + e.getMessage()));
             }
         }
@@ -624,7 +624,7 @@ public class TcpServer {
             System.out.println("\n🛑 Servidor detenido");
             
         } catch (IOException | InterruptedException e) {
-            System.err.println("❌ Error cerrando servidor: " + e.getMessage());
+            System.err.println("[ERROR] Error cerrando servidor: " + e.getMessage());
         }
     }
     
@@ -632,7 +632,7 @@ public class TcpServer {
         TcpServer server = new TcpServer();
         
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            System.out.println("\n⚠️  Cerrando servidor...");
+            System.out.println("\n[WARN]  Cerrando servidor...");
             server.stop();
         }));
         

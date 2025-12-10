@@ -29,7 +29,7 @@ public class InitializeData {
             
             // Verificar si ya existe
             if (houseService.count() > 0) {
-                System.out.println("⚠️  Ya existe una casa. Usando la existente.");
+                System.out.println("[WARN]  Ya existe una casa. Usando la existente.");
             } else {
                 House house = new House("Casa Smart", "Calle Principal #123");
                 house.addDefaultRooms();
@@ -44,7 +44,7 @@ public class InitializeData {
             
             User admin = userService.findByUsername("admin");
             if (admin != null) {
-                System.out.println("⚠️  Usuario admin ya existe.");
+                System.out.println("[WARN]  Usuario admin ya existe.");
             } else {
                 admin = new User("admin", "admin123", "admin@smarthome.com");
                 admin.setRole("admin");
@@ -54,10 +54,10 @@ public class InitializeData {
             System.out.println("Admin: " + userService.findByUsername("admin"));
             
             // ==================== CREAR DISPOSITIVOS ====================
-            System.out.println("\n💡 Creando dispositivos...");
+            System.out.println("\n[LIGHT] Creando dispositivos...");
             
             if (deviceService.count() > 0) {
-                System.out.println("⚠️  Ya existen " + deviceService.count() + " dispositivos.");
+                System.out.println("[WARN]  Ya existen " + deviceService.count() + " dispositivos.");
                 System.out.println("¿Deseas eliminarlos y crear nuevos? (Los datos actuales se perderán)");
             } else {
                 deviceService.createTestDevices(myHouse.getIdString());
@@ -68,7 +68,7 @@ public class InitializeData {
             System.out.println("║              RESUMEN DE DATOS              ║");
             System.out.println("╚════════════════════════════════════════════╝");
             
-            System.out.println("\n🏠 CASA: " + myHouse.getName());
+            System.out.println("\n[HOME] CASA: " + myHouse.getName());
             System.out.println("   Habitaciones: " + myHouse.getRooms());
             
             System.out.println("\n👥 USUARIOS: " + userService.count());
@@ -76,20 +76,20 @@ public class InitializeData {
                 System.out.println("   - " + u.getUsername() + " (" + u.getRole() + ")");
             }
             
-            System.out.println("\n📱 DISPOSITIVOS: " + deviceService.count());
+            System.out.println("\n[DEV] DISPOSITIVOS: " + deviceService.count());
             for (Device d : deviceService.findAll()) {
                 String status = d.isStatus() ? "🟢 ON" : "🔴 OFF";
                 System.out.println("   - " + d.getName() + " [" + d.getType() + "] " + 
                                    d.getRoom() + " " + status);
             }
             
-            System.out.println("\n✅ ¡Datos inicializados correctamente!");
+            System.out.println("\n[OK] ¡Datos inicializados correctamente!");
             System.out.println("\nCredenciales de prueba:");
             System.out.println("   Usuario: admin");
             System.out.println("   Password: admin123");
             
         } catch (Exception e) {
-            System.err.println("❌ Error: " + e.getMessage());
+            System.err.println("[ERROR] Error: " + e.getMessage());
             e.printStackTrace();
         } finally {
             MongoDBConnection.getInstance().close();

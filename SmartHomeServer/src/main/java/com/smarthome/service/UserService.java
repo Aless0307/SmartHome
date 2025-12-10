@@ -32,14 +32,14 @@ public class UserService {
     public User create(User user) {
         // Verificar si el username ya existe
         if (findByUsername(user.getUsername()) != null) {
-            System.err.println("❌ Usuario ya existe: " + user.getUsername());
+            System.err.println("[ERROR] Usuario ya existe: " + user.getUsername());
             return null;
         }
         
         Document doc = user.toDocument();
         collection.insertOne(doc);
         user.setId(doc.getObjectId("_id"));
-        System.out.println("✅ Usuario creado: " + user.getUsername());
+        System.out.println("[OK] Usuario creado: " + user.getUsername());
         return user;
     }
     
@@ -80,10 +80,10 @@ public class UserService {
         ).first();
         
         if (doc != null) {
-            System.out.println("✅ Login exitoso: " + username);
+            System.out.println("[OK] Login exitoso: " + username);
             return User.fromDocument(doc);
         }
-        System.out.println("❌ Login fallido: " + username);
+        System.out.println("[ERROR] Login fallido: " + username);
         return null;
     }
     
