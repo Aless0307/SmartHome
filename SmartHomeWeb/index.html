@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Home - Iniciar Sesion</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1a1a2e">
+</head>
+<body class="login-page">
+    
+    <!-- Contenedor principal de login -->
+    <div class="login-container">
+        <div class="login-card">
+            
+            <!-- Cabecera del formulario -->
+            <div class="login-header">
+                <h1>Smart Home</h1>
+                <p>Control del Hogar Inteligente</p>
+            </div>
+            
+            <!-- Formulario de login -->
+            <form id="loginForm" class="login-form">
+                
+                <!-- Configuracion del servidor -->
+                <div class="server-config">
+                    <div class="input-group inline">
+                        <label for="serverHost">Servidor:</label>
+                        <input type="text" id="serverHost" value="localhost" placeholder="IP del servidor">
+                        <span>:</span>
+                        <input type="number" id="serverPort" value="8080" placeholder="Puerto">
+                    </div>
+                </div>
+                
+                <!-- Usuario -->
+                <div class="input-group">
+                    <label for="username">Usuario</label>
+                    <input type="text" id="username" value="admin" placeholder="Nombre de usuario" required>
+                </div>
+                
+                <!-- Contrasena -->
+                <div class="input-group">
+                    <label for="password">Contrasena</label>
+                    <input type="password" id="password" value="admin123" placeholder="Contrasena" required>
+                </div>
+                
+                <!-- Boton de login -->
+                <button type="submit" id="loginBtn" class="btn-primary">
+                    Conectar
+                </button>
+                
+                <!-- Mensaje de estado -->
+                <div id="loginStatus" class="status-message"></div>
+                
+            </form>
+        </div>
+    </div>
+    
+    <!-- Scripts -->
+    <script src="js/config.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+</body>
+</html>

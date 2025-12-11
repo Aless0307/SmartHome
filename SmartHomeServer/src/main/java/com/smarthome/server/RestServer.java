@@ -136,6 +136,11 @@ public class RestServer {
         public void handle(HttpExchange exchange) throws IOException {
             setCorsHeaders(exchange);
             
+            if ("OPTIONS".equals(exchange.getRequestMethod())) {
+                exchange.sendResponseHeaders(204, -1);
+                return;
+            }
+            
             Map<String, String> params = parseQuery(exchange.getRequestURI().getQuery());
             String id = params.get("id");
             
@@ -163,6 +168,11 @@ public class RestServer {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
             setCorsHeaders(exchange);
+            
+            if ("OPTIONS".equals(exchange.getRequestMethod())) {
+                exchange.sendResponseHeaders(204, -1);
+                return;
+            }
             
             List<House> houses = houseService.findAll();
             if (houses.isEmpty()) {
@@ -193,6 +203,11 @@ public class RestServer {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
             setCorsHeaders(exchange);
+            
+            if ("OPTIONS".equals(exchange.getRequestMethod())) {
+                exchange.sendResponseHeaders(204, -1);
+                return;
+            }
             
             List<User> users = userService.findAll();
             StringBuilder json = new StringBuilder("[");
@@ -338,25 +353,53 @@ public class RestServer {
                         success = deviceService.updateColor(deviceId, color);
                     }
                     break;
+                case "SPEAKER_CMD":
+                    // Comandos especiales para speaker: PLAY, PAUSE, STOP, NEXT, PREV
+                    String speakerCmd = data.get("value");
+                    System.out.println("[REST] SPEAKER_CMD value=" + speakerCmd);
+                    if (speakerCmd != null && !speakerCmd.isEmpty()) {
+                        // Enviar comando via color con prefijo CMD:
+                        String cmdColor = "CMD:" + speakerCmd.toUpperCase();
+                        System.out.println("[REST] Enviando color=" + cmdColor + " a " + deviceId);
+                        success = deviceService.updateColor(deviceId, cmdColor);
+                        System.out.println("[REST] updateColor success=" + success);
+                    } else {
+                        System.out.println("[REST] SPEAKER_CMD sin value!");
+                    }
+                    break;
             }
             
             if (success) {
                 Device updated = deviceService.findById(deviceId);
-                System.out.println("🎮 REST -> " + command + " -> " + device.getName());
+                System.out.println("[REST] Control -> " + command + " -> " + device.getName());
+                
+                // Crear mensaje de broadcast
+                JsonMessage broadcastMsg = new JsonMessage()
+                    .put("status", "OK")
+                    .put("action", "DEVICE_CHANGED")
+                    .put("deviceId", deviceId)
+                    .put("source", "REST")
+                    .put("device", updated.toJson());
+                
+                // Broadcast TCP a clientes conectados (Unity)
+                TcpServer tcpServer = TcpServer.getInstance();
+                if (tcpServer != null) {
+                    tcpServer.broadcast(broadcastMsg);
+                    System.out.println("[REST] Broadcast TCP enviado a Unity");
+                }
                 
                 // Broadcast UDP a clientes registrados
                 UdpServer udpServer = UdpServer.getInstance();
                 if (udpServer != null) {
-                    JsonMessage broadcastMsg = new JsonMessage()
-                        .put("status", "OK")
-                        .put("action", "DEVICE_CHANGED")
-                        .put("deviceId", deviceId)
-                        .put("source", "REST")
-                        .put("device", updated.toJson());
                     udpServer.broadcast(broadcastMsg);
                 }
                 
-                sendResponse(exchange, 200, "application/json", updated.toJson());
+                // Respuesta con estado actualizado para la web
+                String response = "{\"status\": \"OK\", " +
+                    "\"deviceId\": \"" + deviceId + "\", " +
+                    "\"newStatus\": " + updated.isStatus() + ", " +
+                    "\"newValue\": " + updated.getValue() + "}";
+                sendResponse(exchange, 200, "application/json", response);
             } else {
                 sendResponse(exchange, 500, "application/json", 
                     "{\"error\": \"Error actualizando dispositivo\"}");
@@ -370,8 +413,8 @@ public class RestServer {
     
     private void setCorsHeaders(HttpExchange exchange) {
         exchange.getResponseHeaders().add("Access-Control-Allow-Origin", "*");
-        exchange.getResponseHeaders().add("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-        exchange.getResponseHeaders().add("Access-Control-Allow-Headers", "Content-Type");
+        exchange.getResponseHeaders().add("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+        exchange.getResponseHeaders().add("Access-Control-Allow-Headers", "Content-Type, Authorization");
     }
     
     private void sendResponse(HttpExchange exchange, int code, String contentType, String body) throws IOException {

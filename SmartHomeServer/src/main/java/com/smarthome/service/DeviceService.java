@@ -164,9 +164,28 @@ public class DeviceService {
                 new Document("$set", new Document("color", color)
                     .append("lastUpdate", System.currentTimeMillis()))
             );
-            return result.getModifiedCount() > 0;
+            // Usar matchedCount para comandos repetidos (CMD:PLAY, CMD:PLAY)
+            return result.getMatchedCount() > 0;
         } catch (Exception e) {
             System.err.println("Error al actualizar color: " + e.getMessage());
+            return false;
+        }
+    }
+    
+    /**
+     * Actualizar lista de tracks de un speaker
+     */
+    public boolean updateTracks(String deviceId, java.util.List<String> tracks) {
+        try {
+            UpdateResult result = collection.updateOne(
+                eq("_id", new ObjectId(deviceId)),
+                new Document("$set", new Document("tracks", tracks)
+                    .append("lastUpdate", System.currentTimeMillis()))
+            );
+            System.out.println("Speaker " + deviceId + " -> tracks: " + tracks);
+            return result.getModifiedCount() > 0;
+        } catch (Exception e) {
+            System.err.println("Error al actualizar tracks: " + e.getMessage());
             return false;
         }
     }

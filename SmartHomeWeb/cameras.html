@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Home - Camaras de Seguridad</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1a1a2e">
+</head>
+<body>
+    
+    <!-- Barra de navegacion superior -->
+    <header class="navbar">
+        <div class="navbar-brand">
+            <h1>Smart Home Control</h1>
+        </div>
+        <nav class="navbar-menu">
+            <a href="dashboard.html" class="nav-link">Dispositivos</a>
+            <a href="cameras.html" class="nav-link active">Camaras</a>
+        </nav>
+        <div class="navbar-user">
+            <span id="userInfo">Usuario</span>
+            <button id="logoutBtn" class="btn-secondary">Salir</button>
+        </div>
+    </header>
+    
+    <!-- Contenido principal -->
+    <main class="main-content cameras-page">
+        
+        <!-- Controles de camaras -->
+        <section class="cameras-controls">
+            <h2>Camaras de Seguridad - Vista en Vivo</h2>
+            <div class="controls-group">
+                <button id="detectCamerasBtn" class="btn-secondary">Detectar Camaras</button>
+                <button id="startAllBtn" class="btn-success">Iniciar Todas</button>
+                <button id="stopAllBtn" class="btn-danger">Detener Todas</button>
+            </div>
+        </section>
+        
+        <!-- Grid de camaras -->
+        <section id="camerasGrid" class="cameras-grid">
+            <!-- Las camaras se cargan dinamicamente -->
+            <div class="loading">Detectando camaras...</div>
+        </section>
+        
+        <!-- Modal para vista en pantalla completa -->
+        <div id="fullscreenModal" class="modal hidden">
+            <div class="modal-content fullscreen-camera">
+                <button id="closeFullscreenBtn" class="btn-close">X</button>
+                <img id="fullscreenImage" src="" alt="Camara en pantalla completa">
+                <div class="camera-info">
+                    <span id="fullscreenCameraName">Camara</span>
+                </div>
+            </div>
+        </div>
+        
+    </main>
+    
+    <!-- Scripts -->
+    <script src="js/config.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/cameras.js"></script>
+</body>
+</html>

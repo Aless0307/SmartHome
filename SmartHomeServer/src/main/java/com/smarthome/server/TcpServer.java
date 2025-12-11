@@ -30,6 +30,9 @@ public class TcpServer {
     private ExecutorService threadPool;
     private int clientCount = 0;
     
+    // Singleton para acceso desde RestServer
+    private static TcpServer instance;
+    
     // Servicios de base de datos
     private UserService userService;
     private DeviceService deviceService;
@@ -45,6 +48,14 @@ public class TcpServer {
     // Servidor REST para API HTTP
     private RestServer restServer;
     private Thread restThread;
+    
+    public TcpServer() {
+        instance = this;
+    }
+    
+    public static TcpServer getInstance() {
+        return instance;
+    }
     
     /**
      * Inicia el servidor TCP
@@ -255,6 +266,10 @@ public class TcpServer {
                     
                     case "GET_ROOMS":
                         handleGetRooms();
+                        break;
+                    
+                    case "SET_TRACKS":
+                        handleSetTracks(request);
                         break;
                     
                     case "LOGOUT":
@@ -543,6 +558,58 @@ public class TcpServer {
                 .put("action", "ROOMS_LIST")
                 .put("houseName", house.getName())
                 .put("rooms", roomsJson.toString()));
+        }
+        
+        private void handleSetTracks(JsonMessage request) {
+            // No requiere login, Unity puede enviar tracks sin autenticarse
+            String deviceId = request.getString("deviceId");
+            String tracksJson = request.getString("tracks");
+            
+            if (deviceId == null || tracksJson == null) {
+                sendResponse(JsonMessage.error("Faltan deviceId o tracks"));
+                return;
+            }
+            
+            // El tracks viene como: [\"Newspaper\",\"Track2\"]
+            // Necesitamos limpiarlo
+            java.util.List<String> tracks = new java.util.ArrayList<>();
+            
+            // Primero reemplazar las comillas escapadas por un marcador temporal
+            String cleaned = tracksJson.trim();
+            cleaned = cleaned.replace("\\\"", "\u0001"); // Marcador temporal
+            
+            // Quitar corchetes
+            if (cleaned.startsWith("[")) cleaned = cleaned.substring(1);
+            if (cleaned.endsWith("]")) cleaned = cleaned.substring(0, cleaned.length() - 1);
+            
+            if (!cleaned.isEmpty()) {
+                // Dividir por coma
+                String[] parts = cleaned.split(",");
+                for (String part : parts) {
+                    String track = part.trim();
+                    // Restaurar comillas y quitarlas
+                    track = track.replace("\u0001", "\"");
+                    // Quitar comillas externas
+                    if (track.startsWith("\"")) track = track.substring(1);
+                    if (track.endsWith("\"")) track = track.substring(0, track.length() - 1);
+                    if (!track.isEmpty()) {
+                        tracks.add(track);
+                    }
+                }
+            }
+            
+            System.out.println("[TRACKS] Guardando " + tracks.size() + " tracks: " + tracks);
+            boolean success = deviceService.updateTracks(deviceId, tracks);
+            
+            if (success) {
+                sendResponse(new JsonMessage()
+                    .put("status", "OK")
+                    .put("action", "TRACKS_UPDATED")
+                    .put("deviceId", deviceId)
+                    .put("trackCount", tracks.size()));
+            } else {
+                sendResponse(JsonMessage.error("Error actualizando tracks"));
+            }
         }
         
         private void handleLogout() {

@@ -19,12 +19,14 @@ public class Device {
     private boolean status;        // on/off
     private int value;             // valor (brillo 0-100, temperatura, etc)
     private String color;          // Para luces RGB: "#FF5733"
+    private List<String> tracks;   // Para speakers: lista de canciones
     private long lastUpdate;
     
     public Device() {
         this.lastUpdate = System.currentTimeMillis();
         this.status = false;
         this.value = 0;
+        this.tracks = new ArrayList<>();
     }
     
     public Device(String name, String type, String room) {
@@ -47,11 +49,13 @@ public class Device {
            .append("status", status)
            .append("value", value)
            .append("color", color)
+           .append("tracks", tracks)
            .append("lastUpdate", lastUpdate);
         return doc;
     }
     
     // Crear desde Document de MongoDB
+    @SuppressWarnings("unchecked")
     public static Device fromDocument(Document doc) {
         if (doc == null) return null;
         
@@ -66,6 +70,8 @@ public class Device {
         Integer val = doc.getInteger("value");
         device.value = val != null ? val : 0;
         device.color = doc.getString("color");
+        List<String> tr = (List<String>) doc.get("tracks");
+        device.tracks = tr != null ? tr : new ArrayList<>();
         Long update = doc.getLong("lastUpdate");
         device.lastUpdate = update != null ? update : 0;
         return device;
@@ -81,7 +87,16 @@ public class Device {
         sb.append("\"room\":\"").append(room != null ? room : "").append("\",");
         sb.append("\"status\":").append(status).append(",");
         sb.append("\"value\":").append(value).append(",");
-        sb.append("\"color\":\"").append(color != null ? color : "").append("\"");
+        sb.append("\"color\":\"").append(color != null ? color : "").append("\",");
+        // Agregar tracks como array JSON
+        sb.append("\"tracks\":[");
+        if (tracks != null && !tracks.isEmpty()) {
+            for (int i = 0; i < tracks.size(); i++) {
+                if (i > 0) sb.append(",");
+                sb.append("\"").append(tracks.get(i).replace("\"", "\\\"")).append("\"");
+            }
+        }
+        sb.append("]");
         sb.append("}");
         return sb.toString();
     }
@@ -121,6 +136,12 @@ public class Device {
     public String getColor() { return color; }
     public void setColor(String color) { 
         this.color = color;
+        this.lastUpdate = System.currentTimeMillis();
+    }
+    
+    public List<String> getTracks() { return tracks; }
+    public void setTracks(List<String> tracks) { 
+        this.tracks = tracks;
         this.lastUpdate = System.currentTimeMillis();
     }
     

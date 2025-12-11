@@ -89,8 +89,31 @@ public class DeviceBridge : MonoBehaviour
                 
                 Debug.Log($"  ✅ Vinculado: {device.name} → {mapping.targetObject?.name ?? "NULL"}");
                 
+                // Si es un speaker, enviar la lista de tracks al servidor
+                if (device.type == "speaker" && mapping.targetObject != null)
+                {
+                    SendSpeakerTracks(mapping, device.id);
+                }
+                
                 // NO sincronizar estado inicial para evitar que se muevan al iniciar
                 // ApplyDeviceState(mapping, device.status);
+            }
+        }
+    }
+    
+    /// <summary>
+    /// Enviar lista de tracks de un speaker al servidor
+    /// </summary>
+    private void SendSpeakerTracks(DeviceMapping mapping, string deviceId)
+    {
+        var speaker = mapping.targetObject.GetComponent<SmartSpeaker>();
+        if (speaker != null)
+        {
+            string[] tracks = speaker.GetTrackList();
+            if (tracks != null && tracks.Length > 0)
+            {
+                Debug.Log($"🎵 Enviando {tracks.Length} tracks de {mapping.serverDeviceName}");
+                SmartHomeClient.Instance?.SetSpeakerTracks(deviceId, tracks);
             }
         }
     }
@@ -124,12 +147,25 @@ public class DeviceBridge : MonoBehaviour
                 ApplyDeviceValue(mapping, device.value);
             }
             
-            // Verificar si el color cambió
-            if (!string.IsNullOrEmpty(device.color) && mapping.currentColor != device.color)
+            // Verificar si el color cambió o si es un comando de speaker
+            if (!string.IsNullOrEmpty(device.color))
             {
-                Debug.Log($"🎨 {device.name}: Color = {device.color}");
-                mapping.currentColor = device.color;
-                ApplyDeviceColor(mapping, device.color);
+                bool isCommand = device.color.StartsWith("CMD:");
+                bool colorChanged = mapping.currentColor != device.color;
+                
+                // Los comandos siempre se procesan, los colores solo si cambiaron
+                if (isCommand || colorChanged)
+                {
+                    Debug.Log($"🎨 {device.name}: Color = {device.color}");
+                    
+                    // Solo actualizar currentColor si NO es un comando (para que comandos repetidos funcionen)
+                    if (!isCommand)
+                    {
+                        mapping.currentColor = device.color;
+                    }
+                    
+                    ApplyDeviceColor(mapping, device.color);
+                }
             }
         }
         else

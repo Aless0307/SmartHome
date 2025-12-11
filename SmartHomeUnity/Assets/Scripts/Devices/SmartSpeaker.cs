@@ -36,6 +36,7 @@ public class SmartSpeaker : MonoBehaviour
     
     // Componentes
     private AudioSource audioSource;
+    private bool initialized = false; // Flag para ignorar sincronizacion inicial
     
     void Awake()
     {
@@ -67,6 +68,9 @@ public class SmartSpeaker : MonoBehaviour
                 audioSource.clip = playlist[0];
             }
         }
+        
+        // Marcar como inicializado despues de un momento para ignorar sync inicial
+        Invoke("MarkInitialized", 2f);
         
         UpdateVisuals();
     }
@@ -247,13 +251,27 @@ public class SmartSpeaker : MonoBehaviour
     // MÉTODOS PARA DEVICE BRIDGE (SendMessage)
     // ═══════════════════════════════════════════════════════════
     
+    private void MarkInitialized()
+    {
+        initialized = true;
+        Debug.Log($"🔊 {gameObject.name}: Listo para recibir comandos");
+    }
+    
     public void TurnOn()
     {
+        // Ignorar TurnOn durante la sincronizacion inicial
+        // Solo reproducir si ya esta inicializado (comando real del usuario)
+        if (!initialized)
+        {
+            Debug.Log($"🔊 {gameObject.name}: Ignorando TurnOn inicial (sincronizacion)");
+            return;
+        }
         Play();
     }
     
     public void TurnOff()
     {
+        if (!initialized) return;
         Stop();
     }
     
@@ -278,6 +296,13 @@ public class SmartSpeaker : MonoBehaviour
     /// </summary>
     public void OnSmartHomeCommand(string command)
     {
+        // Ignorar comandos durante la sincronizacion inicial
+        if (!initialized)
+        {
+            Debug.Log($"🔊 {gameObject.name}: Ignorando comando inicial: {command}");
+            return;
+        }
+        
         Debug.Log($"🔊 {gameObject.name}: Comando recibido: {command}");
         
         switch (command.ToUpper())

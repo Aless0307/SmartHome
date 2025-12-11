@@ -81,6 +81,11 @@ public class CameraStreamServer {
             
             // Endpoint de status
             httpServer.createContext("/camera/status", exchange -> {
+                setCorsHeaders(exchange);
+                if ("OPTIONS".equalsIgnoreCase(exchange.getRequestMethod())) {
+                    exchange.sendResponseHeaders(204, -1);
+                    return;
+                }
                 String response = "{\"status\":\"OK\",\"cameras\":" + cameraFrames.size() + "}";
                 exchange.getResponseHeaders().set("Content-Type", "application/json");
                 exchange.sendResponseHeaders(200, response.length());
@@ -289,7 +294,16 @@ public class CameraStreamServer {
     private class CameraStreamHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
-            // Obtener ID de cámara
+            // CORS headers
+            setCorsHeaders(exchange);
+            
+            // Manejar preflight OPTIONS
+            if ("OPTIONS".equalsIgnoreCase(exchange.getRequestMethod())) {
+                exchange.sendResponseHeaders(204, -1);
+                return;
+            }
+            
+            // Obtener ID de camara
             String query = exchange.getRequestURI().getQuery();
             String cameraId = getQueryParam(query, "id");
             
@@ -302,9 +316,8 @@ public class CameraStreamServer {
             
             // Headers para MJPEG streaming
             exchange.getResponseHeaders().set("Content-Type", "multipart/x-mixed-replace; boundary=boundary");
-            exchange.getResponseHeaders().set("Cache-Control", "no-cache");
+            exchange.getResponseHeaders().set("Cache-Control", "no-cache, no-store, must-revalidate");
             exchange.getResponseHeaders().set("Connection", "keep-alive");
-            exchange.getResponseHeaders().set("Access-Control-Allow-Origin", "*");
             exchange.sendResponseHeaders(200, 0);
             
             OutputStream out = exchange.getResponseBody();
@@ -337,6 +350,15 @@ public class CameraStreamServer {
     private class SingleFrameHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
+            // CORS headers
+            setCorsHeaders(exchange);
+            
+            // Manejar preflight OPTIONS
+            if ("OPTIONS".equalsIgnoreCase(exchange.getRequestMethod())) {
+                exchange.sendResponseHeaders(204, -1);
+                return;
+            }
+            
             String query = exchange.getRequestURI().getQuery();
             String cameraId = getQueryParam(query, "id");
             
@@ -353,7 +375,7 @@ public class CameraStreamServer {
             }
             
             exchange.getResponseHeaders().set("Content-Type", "image/jpeg");
-            exchange.getResponseHeaders().set("Access-Control-Allow-Origin", "*");
+            exchange.getResponseHeaders().set("Cache-Control", "no-cache, no-store, must-revalidate");
             exchange.sendResponseHeaders(200, frame.length);
             exchange.getResponseBody().write(frame);
             exchange.getResponseBody().close();
@@ -361,11 +383,20 @@ public class CameraStreamServer {
     }
     
     /**
-     * Handler para listar cámaras disponibles
+     * Handler para listar camaras disponibles
      */
     private class CameraListHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
+            // CORS headers
+            setCorsHeaders(exchange);
+            
+            // Manejar preflight OPTIONS
+            if ("OPTIONS".equalsIgnoreCase(exchange.getRequestMethod())) {
+                exchange.sendResponseHeaders(204, -1);
+                return;
+            }
+            
             StringBuilder json = new StringBuilder("{\"cameras\":[");
             boolean first = true;
             for (String cameraId : cameraFrames.keySet()) {
@@ -377,7 +408,6 @@ public class CameraStreamServer {
             
             String response = json.toString();
             exchange.getResponseHeaders().set("Content-Type", "application/json");
-            exchange.getResponseHeaders().set("Access-Control-Allow-Origin", "*");
             exchange.sendResponseHeaders(200, response.length());
             exchange.getResponseBody().write(response.getBytes());
             exchange.getResponseBody().close();
@@ -396,6 +426,16 @@ public class CameraStreamServer {
             }
         }
         return null;
+    }
+    
+    /**
+     * Configurar headers CORS
+     */
+    private void setCorsHeaders(HttpExchange exchange) {
+        exchange.getResponseHeaders().add("Access-Control-Allow-Origin", "*");
+        exchange.getResponseHeaders().add("Access-Control-Allow-Methods", "GET, OPTIONS");
+        exchange.getResponseHeaders().add("Access-Control-Allow-Headers", "Content-Type, Authorization");
+        exchange.getResponseHeaders().add("Access-Control-Max-Age", "86400");
     }
     
     /**

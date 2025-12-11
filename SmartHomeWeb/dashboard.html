@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Home - Panel de Control</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1a1a2e">
+</head>
+<body>
+    
+    <!-- Barra de navegacion superior -->
+    <header class="navbar">
+        <div class="navbar-brand">
+            <h1>Smart Home Control</h1>
+        </div>
+        <nav class="navbar-menu">
+            <a href="dashboard.html" class="nav-link active">Dispositivos</a>
+        </nav>
+        <div class="navbar-user">
+            <span id="userInfo">Usuario</span>
+            <button id="logoutBtn" class="btn-secondary">Salir</button>
+        </div>
+    </header>
+    
+    <!-- Contenido principal -->
+    <main class="main-content">
+        
+        <!-- Panel de filtros -->
+        <section class="filters-panel">
+            <div class="filter-group">
+                <label for="roomFilter">Habitacion:</label>
+                <select id="roomFilter">
+                    <option value="">Todas</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label for="typeFilter">Tipo:</label>
+                <select id="typeFilter">
+                    <option value="">Todos</option>
+                    <option value="light">Luces</option>
+                    <option value="switch">Interruptores</option>
+                    <option value="thermostat">Termostatos</option>
+                    <option value="camera">Camaras</option>
+                    <option value="speaker">Altavoces</option>
+                </select>
+            </div>
+            <button id="refreshBtn" class="btn-secondary">Actualizar</button>
+        </section>
+        
+        <!-- Grid de dispositivos -->
+        <section id="devicesGrid" class="devices-grid">
+            <!-- Los dispositivos se cargan dinamicamente -->
+            <div class="loading">Cargando dispositivos...</div>
+        </section>
+        
+    </main>
+    
+    <!-- Panel de log (abajo) -->
+    <aside class="log-panel">
+        <div class="log-header">
+            <span>Log de eventos</span>
+            <button id="clearLogBtn" class="btn-small">Limpiar</button>
+        </div>
+        <div id="logContent" class="log-content">
+            <!-- Mensajes de log -->
+        </div>
+    </aside>
+    
+    <!-- Modal fullscreen para camaras -->
+    <div id="fullscreenModal" class="modal hidden">
+        <div class="modal-content fullscreen-camera">
+            <img id="fullscreenImage" src="" alt="Camera Stream">
+            <div class="camera-info">
+                <span id="fullscreenCameraName"></span>
+            </div>
+            <button id="closeModalBtn" class="btn-close">&times;</button>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/config.js?v=2"></script>
+    <script src="js/api.js?v=2"></script>
+    <script src="js/auth.js?v=2"></script>
+    <script src="js/devices.js?v=2"></script>
+    <script src="js/app.js?v=2"></script>
+</body>
+</html>

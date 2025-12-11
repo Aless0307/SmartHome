@@ -331,6 +331,27 @@ public class SmartHomeClient : MonoBehaviour
     public void TurnOff(string deviceId) => ControlDevice(deviceId, "OFF");
     public void Toggle(string deviceId) => ControlDevice(deviceId, "TOGGLE");
     
+    /// <summary>
+    /// Enviar lista de tracks de un speaker al servidor
+    /// </summary>
+    public void SetSpeakerTracks(string deviceId, string[] trackNames)
+    {
+        if (trackNames == null || trackNames.Length == 0) return;
+        
+        // Construir array JSON con comillas escapadas para el string exterior
+        StringBuilder sb = new StringBuilder("[");
+        for (int i = 0; i < trackNames.Length; i++)
+        {
+            if (i > 0) sb.Append(",");
+            // Escapar comillas dobles y backslashes dentro del nombre
+            string escaped = trackNames[i].Replace("\\", "\\\\").Replace("\"", "\\\"");
+            sb.Append("\\\"").Append(escaped).Append("\\\"");
+        }
+        sb.Append("]");
+        
+        Send($"{{\"action\": \"SET_TRACKS\", \"deviceId\": \"{deviceId}\", \"tracks\": \"{sb}\"}}");
+    }
+    
     // ═══════════════════════════════════════════════════════════
     // PARSING
     // ═══════════════════════════════════════════════════════════
