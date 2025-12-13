@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Home - Historial de Actividad</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1a1a2e">
+</head>
+<body>
+    
+    <!-- Barra de navegacion superior -->
+    <header class="navbar">
+        <div class="navbar-brand">
+            <h1>Smart Home Control</h1>
+        </div>
+        <nav class="navbar-menu">
+            <a href="dashboard.html" class="nav-link">Dispositivos</a>
+            <a href="routines.html" class="nav-link">Rutinas</a>
+            <a href="energy.html" class="nav-link">Energia</a>
+            <a href="activity.html" class="nav-link active">Historial</a>
+        </nav>
+        <div class="navbar-user">
+            <span id="userInfo">Usuario</span>
+            <button id="logoutBtn" class="btn-secondary">Salir</button>
+        </div>
+    </header>
+    
+    <!-- Contenido principal -->
+    <main class="main-content activity-page">
+        
+        <!-- Filtros -->
+        <section class="activity-filters">
+            <div class="filter-group">
+                <label>Filtrar por:</label>
+                <select id="filterType">
+                    <option value="all">Todas las acciones</option>
+                    <option value="LOGIN">Inicios de sesión</option>
+                    <option value="DEVICE_ON">Dispositivos encendidos</option>
+                    <option value="DEVICE_OFF">Dispositivos apagados</option>
+                    <option value="DEVICE_CHANGE">Cambios en dispositivos</option>
+                    <option value="REGISTER">Registros</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>Usuario:</label>
+                <select id="filterUser">
+                    <option value="">Todos</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>Mostrar:</label>
+                <select id="filterLimit">
+                    <option value="25">25 registros</option>
+                    <option value="50" selected>50 registros</option>
+                    <option value="100">100 registros</option>
+                    <option value="200">200 registros</option>
+                </select>
+            </div>
+            <button id="btnRefresh" class="btn-primary">🔄 Actualizar</button>
+        </section>
+        
+        <!-- Estadísticas rápidas -->
+        <section class="activity-stats">
+            <div class="stat-card">
+                <span class="stat-icon">📊</span>
+                <span class="stat-value" id="totalActivities">0</span>
+                <span class="stat-label">Actividades</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-icon">👤</span>
+                <span class="stat-value" id="totalUsers">0</span>
+                <span class="stat-label">Usuarios</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-icon">🔌</span>
+                <span class="stat-value" id="deviceActions">0</span>
+                <span class="stat-label">Acciones hoy</span>
+            </div>
+        </section>
+        
+        <!-- Timeline de actividad -->
+        <section class="activity-timeline">
+            <h2>📋 Historial de Actividad</h2>
+            <div id="activityList" class="activity-list">
+                <div class="loading">Cargando actividad...</div>
+            </div>
+        </section>
+        
+    </main>
+    
+    <script src="js/config.js"></script>
+    <script src="js/auth.js"></script>
+    <script>
+        // Verificar autenticación
+        if (!Auth.isLoggedIn()) {
+            window.location.href = 'index.html';
+        }
+        
+        // Mostrar info de usuario
+        const user = Auth.getUser();
+        if (user) {
+            document.getElementById('userInfo').textContent = user.username;
+        }
+        
+        // Logout
+        document.getElementById('logoutBtn').addEventListener('click', function() {
+            Auth.logout();
+            window.location.href = 'index.html';
+        });
+        
+        // Cargar actividad
+        async function loadActivity() {
+            const filterType = document.getElementById('filterType').value;
+            const filterUser = document.getElementById('filterUser').value;
+            const limit = document.getElementById('filterLimit').value;
+            
+            let url = CONFIG.getApiUrl() + '/api/activity?limit=' + limit;
+            
+            if (filterType !== 'all') {
+                url += '&action=' + filterType;
+            }
+            if (filterUser) {
+                url += '&user=' + filterUser;
+            }
+            
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                document.getElementById('totalActivities').textContent = data.count || 0;
+                
+                renderActivityList(data.logs || []);
+                
+            } catch (error) {
+                console.error('Error cargando actividad:', error);
+                document.getElementById('activityList').innerHTML = 
+                    '<div class="error">Error al cargar la actividad</div>';
+            }
+        }
+        
+        // Cargar usuarios para el filtro
+        async function loadUsers() {
+            try {
+                const response = await fetch(CONFIG.getApiUrl() + '/api/users');
+                const users = await response.json();
+                
+                const select = document.getElementById('filterUser');
+                document.getElementById('totalUsers').textContent = users.length;
+                
+                users.forEach(user => {
+                    const option = document.createElement('option');
+                    option.value = user.username;
+                    option.textContent = user.username;
+                    select.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error cargando usuarios:', error);
+            }
+        }
+        
+        // Renderizar lista de actividad
+        function renderActivityList(logs) {
+            const container = document.getElementById('activityList');
+            
+            if (!logs || logs.length === 0) {
+                container.innerHTML = '<div class="no-data">No hay actividad registrada</div>';
+                return;
+            }
+            
+            // Contar acciones de hoy
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const todayTs = today.getTime();
+            const todayActions = logs.filter(log => log.timestamp >= todayTs).length;
+            document.getElementById('deviceActions').textContent = todayActions;
+            
+            let html = '';
+            let lastDate = '';
+            
+            logs.forEach(log => {
+                const date = new Date(log.timestamp);
+                const dateStr = date.toLocaleDateString('es-MX', {
+                    weekday: 'long',
+                    day: 'numeric',
+                    month: 'long'
+                });
+                
+                // Separador de fecha
+                if (dateStr !== lastDate) {
+                    html += `<div class="activity-date-separator">${dateStr}</div>`;
+                    lastDate = dateStr;
+                }
+                
+                const timeStr = date.toLocaleTimeString('es-MX', {
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+                
+                const icon = getActionIcon(log.action);
+                const description = getActionDescription(log);
+                const colorClass = getActionColorClass(log.action);
+                
+                html += `
+                    <div class="activity-item ${colorClass}">
+                        <div class="activity-icon">${icon}</div>
+                        <div class="activity-content">
+                            <div class="activity-user">${log.username || 'Sistema'}</div>
+                            <div class="activity-description">${description}</div>
+                            ${log.deviceName ? `<div class="activity-device">📱 ${log.deviceName}</div>` : ''}
+                        </div>
+                        <div class="activity-time">${timeStr}</div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+        
+        function getActionIcon(action) {
+            switch (action) {
+                case 'LOGIN': return '🔐';
+                case 'LOGOUT': return '🚪';
+                case 'REGISTER': return '✨';
+                case 'DEVICE_ON': return '💡';
+                case 'DEVICE_OFF': return '🌙';
+                case 'DEVICE_CHANGE': return '⚙️';
+                case 'ROUTINE_EXEC': return '🤖';
+                default: return '📋';
+            }
+        }
+        
+        function getActionDescription(log) {
+            switch (log.action) {
+                case 'LOGIN': 
+                    return 'Inició sesión' + (log.ipAddress ? ` desde ${log.ipAddress}` : '');
+                case 'LOGOUT': 
+                    return 'Cerró sesión';
+                case 'REGISTER': 
+                    return 'Se registró en el sistema';
+                case 'DEVICE_ON': 
+                    return `Encendió <strong>${log.deviceName || 'dispositivo'}</strong>`;
+                case 'DEVICE_OFF': 
+                    return `Apagó <strong>${log.deviceName || 'dispositivo'}</strong>`;
+                case 'DEVICE_CHANGE': 
+                    return `Modificó <strong>${log.deviceName || 'dispositivo'}</strong>` + 
+                           (log.details ? ` (${log.details})` : '');
+                case 'ROUTINE_EXEC':
+                    return `Ejecutó rutina <strong>${log.details || ''}</strong>`;
+                default:
+                    return log.action + (log.details ? ': ' + log.details : '');
+            }
+        }
+        
+        function getActionColorClass(action) {
+            switch (action) {
+                case 'LOGIN': 
+                case 'REGISTER': 
+                    return 'activity-success';
+                case 'LOGOUT': 
+                    return 'activity-info';
+                case 'DEVICE_ON': 
+                    return 'activity-on';
+                case 'DEVICE_OFF': 
+                    return 'activity-off';
+                case 'DEVICE_CHANGE':
+                    return 'activity-change';
+                default: 
+                    return '';
+            }
+        }
+        
+        // Event listeners
+        document.getElementById('btnRefresh').addEventListener('click', loadActivity);
+        document.getElementById('filterType').addEventListener('change', loadActivity);
+        document.getElementById('filterUser').addEventListener('change', loadActivity);
+        document.getElementById('filterLimit').addEventListener('change', loadActivity);
+        
+        // Cargar datos iniciales
+        loadUsers();
+        loadActivity();
+        
+        // Auto-refresh cada 30 segundos
+        setInterval(loadActivity, 30000);
+    </script>
+</body>
+</html>

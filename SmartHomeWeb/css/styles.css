@@ -1544,3 +1544,304 @@ body {
     }
 }
 
+/* ============================================
+ * PAGINA DE ACTIVIDAD / HISTORIAL
+ * ============================================ */
+
+.activity-page {
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+/* Filtros */
+.activity-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    align-items: flex-end;
+    padding: 20px;
+    background: var(--bg-card);
+    border-radius: 12px;
+    margin-bottom: 20px;
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.filter-group label {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.filter-group select {
+    padding: 10px 15px;
+    background: var(--bg-dark);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    cursor: pointer;
+}
+
+.filter-group select:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+/* Estadísticas */
+.activity-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.stat-card {
+    background: var(--bg-card);
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.stat-icon {
+    font-size: 2rem;
+}
+
+.stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--accent);
+}
+
+.stat-label {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+
+/* Timeline */
+.activity-timeline {
+    background: var(--bg-card);
+    border-radius: 12px;
+    padding: 20px;
+}
+
+.activity-timeline h2 {
+    margin-bottom: 20px;
+    font-size: 1.2rem;
+}
+
+.activity-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.activity-date-separator {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    padding: 10px 0;
+    margin-top: 10px;
+    border-top: 1px solid var(--border-color);
+    text-transform: capitalize;
+}
+
+.activity-date-separator:first-child {
+    margin-top: 0;
+    border-top: none;
+}
+
+.activity-item {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 15px;
+    background: var(--bg-dark);
+    border-radius: 10px;
+    border-left: 4px solid var(--border-color);
+    transition: transform 0.2s;
+}
+
+.activity-item:hover {
+    transform: translateX(5px);
+}
+
+.activity-item.activity-success {
+    border-left-color: #4ade80;
+}
+
+.activity-item.activity-info {
+    border-left-color: #60a5fa;
+}
+
+.activity-item.activity-on {
+    border-left-color: #fbbf24;
+}
+
+.activity-item.activity-off {
+    border-left-color: #94a3b8;
+}
+
+.activity-item.activity-change {
+    border-left-color: #a78bfa;
+}
+
+.activity-icon {
+    font-size: 1.5rem;
+    min-width: 40px;
+    text-align: center;
+}
+
+.activity-content {
+    flex: 1;
+}
+
+.activity-user {
+    font-weight: 600;
+    font-size: 0.95rem;
+    margin-bottom: 2px;
+}
+
+.activity-description {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.activity-description strong {
+    color: var(--text-primary);
+}
+
+.activity-device {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-top: 4px;
+}
+
+.activity-time {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+}
+
+/* Loading y errores */
+.loading {
+    text-align: center;
+    padding: 40px;
+    color: var(--text-muted);
+}
+
+.error {
+    text-align: center;
+    padding: 20px;
+    color: var(--danger);
+    background: rgba(239, 68, 68, 0.1);
+    border-radius: 8px;
+}
+
+/* Responsive actividad */
+@media (max-width: 768px) {
+    .activity-filters {
+        flex-direction: column;
+    }
+    
+    .filter-group {
+        width: 100%;
+    }
+    
+    .filter-group select {
+        width: 100%;
+    }
+    
+    .activity-stats {
+        grid-template-columns: repeat(3, 1fr);
+    }
+    
+    .stat-value {
+        font-size: 1.5rem;
+    }
+    
+    .activity-item {
+        flex-wrap: wrap;
+    }
+    
+    .activity-time {
+        width: 100%;
+        margin-top: 10px;
+        padding-top: 10px;
+        border-top: 1px solid var(--border-color);
+    }
+}
+
+/* ============================================
+ * INDICADOR DE CONEXIÓN WEBSOCKET
+ * ============================================ */
+.connection-indicator {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    z-index: 1000;
+    transition: all 0.3s ease;
+    box-shadow: var(--shadow);
+}
+
+.connection-indicator .dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+}
+
+.connection-indicator.connected {
+    background: rgba(74, 222, 128, 0.2);
+    border: 1px solid var(--accent);
+    color: var(--accent);
+}
+
+.connection-indicator.connected .dot {
+    background: var(--accent);
+    box-shadow: 0 0 10px var(--accent);
+}
+
+.connection-indicator.disconnected {
+    background: rgba(239, 68, 68, 0.2);
+    border: 1px solid var(--danger);
+    color: var(--danger);
+}
+
+.connection-indicator.disconnected .dot {
+    background: var(--danger);
+    animation: none;
+}
+
+.connection-indicator.connecting {
+    background: rgba(245, 158, 11, 0.2);
+    border: 1px solid var(--warning);
+    color: var(--warning);
+}
+
+.connection-indicator.connecting .dot {
+    background: var(--warning);
+    animation: blink 1s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.7; transform: scale(1.1); }
+}
+
+@keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+}

@@ -136,7 +136,15 @@ public class DeviceBridge : MonoBehaviour
             {
                 Debug.Log($"🔄 {device.name}: {(device.status ? "ENCENDER" : "APAGAR")}");
                 mapping.currentStatus = device.status;
-                ApplyDeviceState(mapping, device.status);
+                
+                try
+                {
+                    ApplyDeviceState(mapping, device.status);
+                }
+                catch (System.Exception e)
+                {
+                    Debug.LogError($"❌ Error en ApplyDeviceState: {e.Message}\n{e.StackTrace}");
+                }
             }
             
             // Verificar si el valor cambió (brillo) - permitir cualquier valor >= 0
@@ -211,6 +219,8 @@ public class DeviceBridge : MonoBehaviour
     /// </summary>
     private void ApplyDeviceState(DeviceMapping mapping, bool turnOn)
     {
+        Debug.Log($"🔧 ApplyDeviceState: targetObject={mapping.targetObject?.name ?? "NULL"}, useKeySimulation={mapping.useKeySimulation}");
+        
         if (mapping.targetObject == null)
         {
             Debug.LogWarning($"⚠️ Target object es null para {mapping.serverDeviceName}");
@@ -230,6 +240,10 @@ public class DeviceBridge : MonoBehaviour
             string methodName = turnOn ? mapping.onMethodName : mapping.offMethodName;
             Debug.Log($"🎮 Llamando {methodName} en {mapping.targetObject.name}");
             mapping.targetObject.SendMessage(methodName, SendMessageOptions.DontRequireReceiver);
+        }
+        else
+        {
+            Debug.LogWarning($"⚠️ No hay método configurado para {mapping.serverDeviceName}");
         }
     }
     

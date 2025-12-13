@@ -29,6 +29,7 @@ public class RestServer {
     private DeviceService deviceService;
     private HouseService houseService;
     private EnergyService energyService;
+    private ActivityService activityService;
     
     public void start() throws IOException {
         // Inicializar MongoDB
@@ -40,6 +41,7 @@ public class RestServer {
         deviceService = new DeviceService();
         houseService = new HouseService();
         energyService = new EnergyService();
+        activityService = ActivityService.getInstance();
         
         // Iniciar muestreo de energia (cada 30 segundos)
         energyService.startSampling();
@@ -54,8 +56,10 @@ public class RestServer {
         server.createContext("/api/rooms", new RoomsHandler());
         server.createContext("/api/users", new UsersHandler());
         server.createContext("/api/login", new LoginHandler());
+        server.createContext("/api/register", new RegisterHandler());
         server.createContext("/api/control", new ControlHandler());
         server.createContext("/api/energy", new EnergyHandler());
+        server.createContext("/api/activity", new ActivityHandler());
         
         server.setExecutor(null);
         server.start();
@@ -73,8 +77,10 @@ public class RestServer {
         System.out.println("  GET  http://localhost:" + PORT + "/api/rooms     - Lista habitaciones");
         System.out.println("  GET  http://localhost:" + PORT + "/api/users     - Lista usuarios");
         System.out.println("  POST http://localhost:" + PORT + "/api/login     - Login");
+        System.out.println("  POST http://localhost:" + PORT + "/api/register  - Registro");
         System.out.println("  POST http://localhost:" + PORT + "/api/control   - Controlar dispositivo");
         System.out.println("  GET  http://localhost:" + PORT + "/api/energy    - Estadisticas de energia");
+        System.out.println("  GET  http://localhost:" + PORT + "/api/activity  - Historial de actividad");
         System.out.println("\n[OK] Servidor listo...");
     }
     
@@ -267,6 +273,10 @@ public class RestServer {
             
             User user = userService.login(username, password);
             if (user != null) {
+                // Registrar actividad de login
+                String clientIp = exchange.getRemoteAddress().getAddress().getHostAddress();
+                activityService.logLogin(username, clientIp);
+                
                 // Generar token JWT
                 String token = JwtUtil.generateToken(user.getUsername(), user.getRole());
                 String json = "{\"status\": \"OK\", \"username\": \"" + user.getUsername() + 
@@ -278,6 +288,137 @@ public class RestServer {
                 sendResponse(exchange, 401, "application/json", 
                     "{\"error\": \"Credenciales inválidas\"}");
             }
+        }
+    }
+    
+    /**
+     * POST /api/register - Registro de nuevo usuario
+     * Body: {"username": "nuevo", "password": "pass123", "email": "email@test.com"}
+     */
+    class RegisterHandler implements HttpHandler {
+        @Override
+        public void handle(HttpExchange exchange) throws IOException {
+            setCorsHeaders(exchange);
+            
+            if ("OPTIONS".equals(exchange.getRequestMethod())) {
+                exchange.sendResponseHeaders(204, -1);
+                return;
+            }
+            
+            if (!"POST".equals(exchange.getRequestMethod())) {
+                sendResponse(exchange, 405, "application/json", 
+                    "{\"error\": \"Método no permitido\"}");
+                return;
+            }
+            
+            String body = readBody(exchange);
+            Map<String, String> data = parseJsonSimple(body);
+            
+            String username = data.get("username");
+            String password = data.get("password");
+            String email = data.get("email");
+            
+            // Validaciones
+            if (username == null || username.trim().isEmpty()) {
+                sendResponse(exchange, 400, "application/json", 
+                    "{\"error\": \"El nombre de usuario es requerido\"}");
+                return;
+            }
+            
+            if (password == null || password.length() < 6) {
+                sendResponse(exchange, 400, "application/json", 
+                    "{\"error\": \"La contraseña debe tener al menos 6 caracteres\"}");
+                return;
+            }
+            
+            if (email == null || !email.contains("@")) {
+                sendResponse(exchange, 400, "application/json", 
+                    "{\"error\": \"Email inválido\"}");
+                return;
+            }
+            
+            // Verificar si ya existe
+            if (userService.findByUsername(username) != null) {
+                sendResponse(exchange, 409, "application/json", 
+                    "{\"error\": \"El nombre de usuario ya existe\"}");
+                return;
+            }
+            
+            if (userService.findByEmail(email) != null) {
+                sendResponse(exchange, 409, "application/json", 
+                    "{\"error\": \"El email ya está registrado\"}");
+                return;
+            }
+            
+            // Crear usuario
+            User newUser = new User(username, password, email);
+            User created = userService.create(newUser);
+            
+            if (created != null) {
+                // Registrar actividad
+                String clientIp = exchange.getRemoteAddress().getAddress().getHostAddress();
+                activityService.logRegister(username, clientIp);
+                
+                String json = "{\"status\": \"OK\", \"message\": \"Usuario registrado exitosamente\", " +
+                              "\"username\": \"" + created.getUsername() + "\"}";
+                sendResponse(exchange, 201, "application/json", json);
+            } else {
+                sendResponse(exchange, 500, "application/json", 
+                    "{\"error\": \"Error al crear usuario\"}");
+            }
+        }
+    }
+    
+    /**
+     * GET /api/activity - Historial de actividad
+     * Params: ?limit=50&user=admin&action=LOGIN
+     */
+    class ActivityHandler implements HttpHandler {
+        @Override
+        public void handle(HttpExchange exchange) throws IOException {
+            setCorsHeaders(exchange);
+            
+            if ("OPTIONS".equals(exchange.getRequestMethod())) {
+                exchange.sendResponseHeaders(204, -1);
+                return;
+            }
+            
+            Map<String, String> params = parseQuery(exchange.getRequestURI().getQuery());
+            int limit = 50;
+            try {
+                if (params.containsKey("limit")) {
+                    limit = Integer.parseInt(params.get("limit"));
+                }
+            } catch (NumberFormatException e) {
+                // Usar default
+            }
+            
+            java.util.List<ActivityLog> logs;
+            
+            // Filtrar por usuario si se especifica
+            String filterUser = params.get("user");
+            String filterAction = params.get("action");
+            String filterDevice = params.get("device");
+            
+            if (filterUser != null && !filterUser.isEmpty()) {
+                logs = activityService.getByUser(filterUser, limit);
+            } else if (filterAction != null && !filterAction.isEmpty()) {
+                logs = activityService.getByAction(filterAction, limit);
+            } else if (filterDevice != null && !filterDevice.isEmpty()) {
+                logs = activityService.getByDevice(filterDevice, limit);
+            } else {
+                logs = activityService.getRecent(limit);
+            }
+            
+            // Construir JSON
+            StringBuilder json = new StringBuilder("{\"count\": ").append(logs.size()).append(", \"logs\": [");
+            for (int i = 0; i < logs.size(); i++) {
+                if (i > 0) json.append(",");
+                json.append(logs.get(i).toJson());
+            }
+            json.append("]}");
+            
+            sendResponse(exchange, 200, "application/json", json.toString());
         }
     }
     
@@ -305,6 +446,7 @@ public class RestServer {
             // Validar JWT (opcional para REST, pero buena práctica)
             String authHeader = exchange.getRequestHeaders().getFirst("Authorization");
             String token = null;
+            String username = "anonymous";
             
             if (authHeader != null && authHeader.startsWith("Bearer ")) {
                 token = authHeader.substring(7);
@@ -313,7 +455,7 @@ public class RestServer {
                         "{\"error\": \"Token inválido o expirado\"}");
                     return;
                 }
-                String username = JwtUtil.getUsername(token);
+                username = JwtUtil.getUsername(token);
                 System.out.println("[AUTH] REST autenticado: " + username);
             }
             
@@ -396,6 +538,20 @@ public class RestServer {
             if (success) {
                 Device updated = deviceService.findById(deviceId);
                 System.out.println("[REST] Control -> " + command + " -> " + device.getName());
+                
+                // Registrar actividad
+                boolean isOn = updated.isStatus();
+                String details = command;
+                if (data.get("value") != null) {
+                    details += ": " + data.get("value");
+                }
+                if (command.equals("ON") || command.equals("OFF") || command.equals("TOGGLE")) {
+                    activityService.logDeviceControl(username, deviceId, device.getName(), 
+                        device.getType(), isOn, null);
+                } else {
+                    activityService.logDeviceChange(username, deviceId, device.getName(), 
+                        device.getType(), details);
+                }
                 
                 // Crear mensaje de broadcast
                 JsonMessage broadcastMsg = new JsonMessage()

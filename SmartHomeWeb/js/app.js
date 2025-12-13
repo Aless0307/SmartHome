@@ -28,7 +28,32 @@ async function initDashboard() {
     // Cargar datos iniciales
     await loadInitialData();
     
+    // Iniciar conexión WebSocket para tiempo real
+    initWebSocket();
+    
     Log.add('Dashboard iniciado');
+}
+
+/*
+ * Inicializa la conexión WebSocket para actualizaciones en tiempo real
+ */
+function initWebSocket() {
+    // Inicializar indicador de conexión
+    ConnectionIndicator.init();
+    
+    // Configurar callbacks
+    WebSocketClient.onConnected = function() {
+        ConnectionIndicator.setStatus('connected');
+        // Detener polling si estaba activo
+        stopAutoRefresh();
+    };
+    
+    WebSocketClient.onDisconnected = function() {
+        ConnectionIndicator.setStatus('disconnected');
+    };
+    
+    // Conectar
+    WebSocketClient.connect();
 }
 
 /*
@@ -181,6 +206,60 @@ function setupFullscreenModal() {
         }
     });
 }
+
+// Auto-refresh como fallback (solo cuando WebSocket no está disponible)
+var autoRefreshInterval = null;
+var AUTO_REFRESH_DELAY = 3000; // 3 segundos
+
+function startAutoRefresh() {
+    if (autoRefreshInterval) return;
+    
+    // Solo iniciar si WebSocket no está conectado
+    if (WebSocketClient && WebSocketClient.isConnected) {
+        return;
+    }
+    
+    autoRefreshInterval = setInterval(function() {
+        // Solo refrescar si la pagina esta visible y WebSocket no conectado
+        if (!document.hidden && (!WebSocketClient || !WebSocketClient.isConnected)) {
+            silentRefresh();
+        }
+    }, AUTO_REFRESH_DELAY);
+    
+    Log.add('Polling activado (fallback)');
+}
+
+function stopAutoRefresh() {
+    if (autoRefreshInterval) {
+        clearInterval(autoRefreshInterval);
+        autoRefreshInterval = null;
+    }
+}
+
+// Refrescar sin mostrar "Cargando..."
+async function silentRefresh() {
+    try {
+        var devices = await Devices.loadAll();
+        // Re-aplicar filtros y renderizar silenciosamente
+        applyFilters();
+    } catch (error) {
+        console.error('Error en auto-refresh:', error);
+    }
+}
+
+// Pausar auto-refresh cuando la pestaña no está visible
+document.addEventListener('visibilitychange', function() {
+    if (document.hidden) {
+        // Pausar polling
+        stopAutoRefresh();
+    } else {
+        // Si WebSocket no está conectado, reanudar polling
+        if (!WebSocketClient || !WebSocketClient.isConnected) {
+            startAutoRefresh();
+            silentRefresh();
+        }
+    }
+});
 
 // Inicializar cuando cargue el DOM
 document.addEventListener('DOMContentLoaded', function() {

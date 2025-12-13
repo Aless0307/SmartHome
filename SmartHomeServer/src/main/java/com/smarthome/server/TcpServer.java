@@ -49,6 +49,10 @@ public class TcpServer {
     private RestServer restServer;
     private Thread restThread;
     
+    // Servidor WebSocket para navegadores web
+    private WebSocketServer webSocketServer;
+    private Thread wsThread;
+    
     public TcpServer() {
         instance = this;
     }
@@ -77,6 +81,12 @@ public class TcpServer {
             udpThread.setDaemon(true);
             udpThread.start();
             
+            // Iniciar servidor WebSocket para navegadores web
+            webSocketServer = new WebSocketServer();
+            wsThread = new Thread(webSocketServer, "WebSocket-Server");
+            wsThread.setDaemon(true);
+            wsThread.start();
+            
             // Iniciar servidor REST en hilo separado
             restServer = new RestServer();
             restThread = new Thread(() -> {
@@ -103,6 +113,7 @@ public class TcpServer {
             System.out.println("  [HOME] SMART HOME - Servidor Completo");
             System.out.println("  [NET] TCP Puerto: " + PORT + " (Control principal)");
             System.out.println("  [UDP] UDP Puerto: 5001 (Notificaciones broadcast)");
+            System.out.println("  [WS]  WebSocket Puerto: 5002 (Navegadores web)");
             System.out.println("  [WEB] REST Puerto: 8080 (API HTTP)");
             System.out.println("  [CAM] Stream Puerto: 8081 (Cámaras HTTP) / 8082 (UDP frames)");
             System.out.println("  [POOL] Pool de hilos: " + MAX_CLIENTS + " máximo");
@@ -140,13 +151,24 @@ public class TcpServer {
     }
     
     /**
-     * Envía un mensaje a todos los clientes conectados
+     * Envía un mensaje a todos los clientes conectados (TCP, UDP y WebSocket)
      */
     public void broadcast(JsonMessage message) {
+        // Broadcast a clientes TCP (Unity)
         for (ClientHandler client : connectedClients.values()) {
             if (client.isLoggedIn()) {
                 client.sendResponse(message);
             }
+        }
+        
+        // Broadcast a clientes UDP
+        if (udpServer != null) {
+            udpServer.broadcast(message);
+        }
+        
+        // Broadcast a clientes WebSocket (navegadores web)
+        if (webSocketServer != null) {
+            webSocketServer.broadcast(message);
         }
     }
     

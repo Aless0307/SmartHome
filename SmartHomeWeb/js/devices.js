@@ -304,9 +304,12 @@ var Devices = {
         var id = device.id;
         var name = device.name;
         var room = device.room;
-        var status = device.status === true || device.status === 'true';
         var volume = parseInt(device.value) || 80;
         volume = Math.max(0, Math.min(100, volume));
+        
+        // Determinar estado de reproducción por el campo color (CMD:PLAY, CMD:PAUSE, etc.)
+        var colorCmd = device.color || '';
+        var isPlaying = colorCmd.indexOf('PLAY') !== -1;
         
         // Obtener tracks del dispositivo (enviados por Unity)
         var tracks = device.tracks || [];
@@ -326,15 +329,15 @@ var Devices = {
         card.innerHTML = 
             '<div class="card-header">' +
                 '<span class="device-name">' + name + '</span>' +
-                '<span class="device-status-text ' + (status ? 'on' : '') + '">' + 
-                    (status ? 'Reproduciendo' : 'Detenido') + 
+                '<span class="device-status-text ' + (isPlaying ? 'on' : '') + '">' + 
+                    (isPlaying ? 'Reproduciendo' : 'Detenido') + 
                 '</span>' +
             '</div>' +
             '<div class="device-room">' + room + '</div>' +
             '<div class="speaker-controls">' +
                 '<button class="speaker-btn" data-cmd="PREV" title="Anterior">&#9198;</button>' +
-                '<button class="speaker-btn play-btn ' + (status ? 'playing' : '') + '" data-cmd="TOGGLE" title="' + (status ? 'Pausar' : 'Reproducir') + '">' + 
-                    (status ? '&#9208;' : '&#9654;') + 
+                '<button class="speaker-btn play-btn ' + (isPlaying ? 'playing' : '') + '" data-cmd="TOGGLE" title="' + (isPlaying ? 'Pausar' : 'Reproducir') + '">' + 
+                    (isPlaying ? '&#9208;' : '&#9654;') + 
                 '</button>' +
                 '<button class="speaker-btn" data-cmd="NEXT" title="Siguiente">&#9197;</button>' +
                 '<button class="speaker-btn stop-btn" data-cmd="STOP" title="Detener">&#9209;</button>' +
@@ -520,6 +523,7 @@ var Devices = {
         card.querySelectorAll('.speaker-btn').forEach(function(btn) {
             btn.addEventListener('click', function() {
                 var cmd = this.dataset.cmd;
+                var statusText = card.querySelector('.device-status-text');
                 
                 if (cmd === 'TOGGLE') {
                     var isPlaying = this.classList.contains('playing');
@@ -527,8 +531,14 @@ var Devices = {
                     self.sendSpeakerCommand(id, isPlaying ? 'PAUSE' : 'PLAY');
                     // Actualizar boton localmente
                     this.classList.toggle('playing');
-                    this.innerHTML = this.classList.contains('playing') ? '&#9208;' : '&#9654;';
-                    this.title = this.classList.contains('playing') ? 'Pausar' : 'Reproducir';
+                    var nowPlaying = this.classList.contains('playing');
+                    this.innerHTML = nowPlaying ? '&#9208;' : '&#9654;';
+                    this.title = nowPlaying ? 'Pausar' : 'Reproducir';
+                    // Actualizar texto de estado
+                    if (statusText) {
+                        statusText.textContent = nowPlaying ? 'Reproduciendo' : 'Detenido';
+                        statusText.classList.toggle('on', nowPlaying);
+                    }
                 } else if (cmd === 'STOP') {
                     self.sendSpeakerCommand(id, 'STOP');
                     // Resetear boton play
@@ -537,6 +547,11 @@ var Devices = {
                         playBtn.classList.remove('playing');
                         playBtn.innerHTML = '&#9654;';
                         playBtn.title = 'Reproducir';
+                    }
+                    // Actualizar texto de estado
+                    if (statusText) {
+                        statusText.textContent = 'Detenido';
+                        statusText.classList.remove('on');
                     }
                 } else {
                     self.sendSpeakerCommand(id, cmd);
