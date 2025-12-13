@@ -1,0 +1,916 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dron - SmartHome</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        .drone-container {
+            display: flex;
+            flex-direction: column;
+            height: calc(100vh - 80px);
+            padding: 20px;
+            gap: 20px;
+        }
+        
+        .video-section {
+            flex: 1;
+            background: #1a1a2e;
+            border-radius: 16px;
+            overflow: hidden;
+            position: relative;
+            min-height: 400px;
+        }
+        
+        #droneVideo {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            background: #000;
+        }
+        
+        .video-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            font-size: 18px;
+        }
+        
+        .video-overlay.hidden {
+            display: none;
+        }
+        
+        .status-bar {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            right: 10px;
+            display: flex;
+            justify-content: space-between;
+            padding: 10px;
+            background: rgba(0,0,0,0.5);
+            border-radius: 8px;
+            color: white;
+            font-size: 14px;
+            z-index: 10;
+        }
+        
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #ef4444;
+        }
+        
+        .status-dot.connected {
+            background: #22c55e;
+        }
+        
+        .controls-section {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .control-card {
+            background: var(--card-bg, #1e1e2e);
+            border-radius: 12px;
+            padding: 20px;
+            flex: 1;
+            min-width: 200px;
+        }
+        
+        .control-card h3 {
+            margin: 0 0 15px 0;
+            color: var(--text-primary, #fff);
+        }
+        
+        .btn-drone {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s;
+            margin: 5px;
+        }
+        
+        .btn-connect {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            color: white;
+        }
+        
+        .btn-connect:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+        }
+        
+        .btn-disconnect {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+        }
+        
+        .log-area {
+            background: #0a0a0f;
+            border-radius: 8px;
+            padding: 10px;
+            height: 150px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+            color: #888;
+        }
+        
+        .log-area .success { color: #22c55e; }
+        .log-area .error { color: #ef4444; }
+        .log-area .info { color: #3b82f6; }
+        
+        /* Controles del dron */
+        .controls-panel {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+        }
+        
+        .keyboard-controls {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .key-row {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .key {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(145deg, #2a2a3e, #1a1a2e);
+            border: 2px solid #3b82f6;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-weight: bold;
+            font-size: 16px;
+            transition: all 0.15s;
+            cursor: pointer;
+            user-select: none;
+        }
+        
+        .key:hover {
+            background: linear-gradient(145deg, #3a3a4e, #2a2a3e);
+        }
+        
+        .key.active {
+            background: linear-gradient(145deg, #3b82f6, #2563eb);
+            transform: scale(0.95);
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
+        }
+        
+        .key.wide {
+            width: 110px;
+        }
+        
+        .key.placeholder {
+            visibility: hidden;
+        }
+        
+        .control-label {
+            color: #888;
+            font-size: 12px;
+            text-align: center;
+            margin-top: 5px;
+        }
+        
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .control-group h4 {
+            margin: 0 0 10px 0;
+            color: #3b82f6;
+            font-size: 14px;
+        }
+        
+        .input-status {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-top: 15px;
+            padding: 10px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        
+        .input-status span {
+            color: #888;
+        }
+        
+        .input-status .value {
+            color: #22c55e;
+            font-weight: bold;
+        }
+        
+        /* Indicador de foco */
+        .focus-hint {
+            text-align: center;
+            padding: 10px;
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px dashed #3b82f6;
+            border-radius: 8px;
+            margin-top: 10px;
+            font-size: 12px;
+            color: #888;
+        }
+        
+        .focus-hint.active {
+            background: rgba(34, 197, 94, 0.1);
+            border-color: #22c55e;
+            color: #22c55e;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-brand">🏠 SmartHome</div>
+        <div class="nav-links">
+            <a href="dashboard.html" class="nav-link">Dashboard</a>
+            <a href="cameras.html" class="nav-link">Cámaras</a>
+            <a href="drone.html" class="nav-link active">Dron</a>
+        </div>
+    </nav>
+
+    <div class="drone-container">
+        <div class="video-section">
+            <div class="status-bar">
+                <div class="status-indicator">
+                    <div class="status-dot" id="statusDot"></div>
+                    <span id="statusText">Desconectado</span>
+                </div>
+                <div id="streamInfo">--</div>
+            </div>
+            
+            <video id="droneVideo" autoplay playsinline muted></video>
+            
+            <div class="video-overlay" id="videoOverlay">
+                <div>
+                    <p>🚁 Vista del Dron</p>
+                    <p id="overlayStatus">Presiona "Conectar" para iniciar</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="controls-section">
+            <div class="control-card">
+                <h3>🎮 Conexión</h3>
+                <button class="btn-drone btn-connect" id="btnConnect">Conectar</button>
+                <button class="btn-drone btn-disconnect" id="btnDisconnect" disabled>Desconectar</button>
+            </div>
+            
+            <div class="control-card">
+                <h3>🕹️ Controles</h3>
+                <div class="controls-panel">
+                    <div class="control-group">
+                        <h4>Movimiento</h4>
+                        <div class="keyboard-controls">
+                            <div class="key-row">
+                                <div class="key placeholder">X</div>
+                                <div class="key" id="keyW" data-key="w">W</div>
+                                <div class="key placeholder">X</div>
+                            </div>
+                            <div class="key-row">
+                                <div class="key" id="keyA" data-key="a">A</div>
+                                <div class="key" id="keyS" data-key="s">S</div>
+                                <div class="key" id="keyD" data-key="d">D</div>
+                            </div>
+                        </div>
+                        <div class="control-label">Adelante/Atrás/Izq/Der</div>
+                    </div>
+                    
+                    <div class="control-group">
+                        <h4>Rotación</h4>
+                        <div class="keyboard-controls">
+                            <div class="key-row">
+                                <div class="key" id="keyQ" data-key="q">Q</div>
+                                <div class="key" id="keyE" data-key="e">E</div>
+                            </div>
+                        </div>
+                        <div class="control-label">Girar Izq/Der</div>
+                        
+                        <h4 style="margin-top: 15px;">Altura</h4>
+                        <div class="keyboard-controls">
+                            <div class="key-row">
+                                <div class="key wide" id="keySpace" data-key=" ">SPACE</div>
+                            </div>
+                            <div class="key-row">
+                                <div class="key wide" id="keyShift" data-key="shift">SHIFT</div>
+                            </div>
+                        </div>
+                        <div class="control-label">Subir/Bajar</div>
+                    </div>
+                </div>
+                
+                <div class="input-status" id="inputStatus">
+                    <span>Horizontal: <span class="value" id="valH">0.00</span></span>
+                    <span>Vertical: <span class="value" id="valV">0.00</span></span>
+                    <span>Elevación: <span class="value" id="valE">0.00</span></span>
+                    <span>Rotación: <span class="value" id="valR">0.00</span></span>
+                </div>
+                
+                <div id="dcStatus" style="text-align: center; margin-top: 10px; font-size: 12px; color: #888;">
+                    📡 Sin conexión
+                </div>
+                
+                <div class="focus-hint" id="focusHint">
+                    ⌨️ Haz clic aquí y usa el teclado para controlar el dron
+                </div>
+            </div>
+            
+            <div class="control-card">
+                <h3>📋 Log</h3>
+                <div class="log-area" id="logArea"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==================== CONFIGURACIÓN ====================
+        const SIGNALING_URL = 'ws://127.0.0.1:8888';
+        
+        // ==================== VARIABLES GLOBALES ====================
+        let websocket = null;
+        let peerConnection = null;
+        let dataChannel = null;
+        let connectionId = null;
+        let isConnected = false;
+        let controlsEnabled = false;
+        
+        // Estado de input del dron
+        const droneInput = {
+            horizontal: 0,    // A/D - izquierda/derecha
+            vertical: 0,      // W/S - adelante/atrás
+            elevation: 0,     // Space/Shift - subir/bajar
+            rotation: 0       // Q/E - girar
+        };
+        
+        // Teclas presionadas actualmente
+        const keysPressed = new Set();
+        
+        // ==================== ELEMENTOS DOM ====================
+        const video = document.getElementById('droneVideo');
+        const statusDot = document.getElementById('statusDot');
+        const statusText = document.getElementById('statusText');
+        const streamInfo = document.getElementById('streamInfo');
+        const videoOverlay = document.getElementById('videoOverlay');
+        const overlayStatus = document.getElementById('overlayStatus');
+        const btnConnect = document.getElementById('btnConnect');
+        const btnDisconnect = document.getElementById('btnDisconnect');
+        const logArea = document.getElementById('logArea');
+        
+        // ==================== LOGGING ====================
+        function log(message, type = 'info') {
+            const time = new Date().toLocaleTimeString();
+            const entry = document.createElement('div');
+            entry.className = type;
+            entry.textContent = `[${time}] ${message}`;
+            logArea.appendChild(entry);
+            logArea.scrollTop = logArea.scrollHeight;
+            console.log(`[Drone ${type}] ${message}`);
+        }
+        
+        // ==================== UI UPDATES ====================
+        function updateStatus(connected, text) {
+            isConnected = connected;
+            statusDot.className = 'status-dot' + (connected ? ' connected' : '');
+            statusText.textContent = text;
+            btnConnect.disabled = connected;
+            btnDisconnect.disabled = !connected;
+            
+            if (connected) {
+                videoOverlay.classList.add('hidden');
+            }
+        }
+        
+        // ==================== WEBRTC ====================
+        function createPeerConnection() {
+            const config = {
+                iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+            };
+            
+            peerConnection = new RTCPeerConnection(config);
+            
+            // Crear DataChannel para enviar controles
+            dataChannel = peerConnection.createDataChannel('input', {
+                ordered: true,   // Mantener orden para evitar problemas
+                maxRetransmits: 3  // Reintentos para fiabilidad
+            });
+            
+            dataChannel.onopen = () => {
+                log('📡 DataChannel LOCAL "input" ABIERTO', 'success');
+            };
+            
+            dataChannel.onclose = () => {
+                log('📡 DataChannel LOCAL cerrado', 'info');
+            };
+            
+            dataChannel.onerror = (e) => {
+                log('❌ Error en DataChannel LOCAL: ' + (e.error?.message || 'desconocido'), 'error');
+            };
+            
+            // También escuchar DataChannels entrantes de Unity - PREFERIR ESTE!
+            peerConnection.ondatachannel = (event) => {
+                log('📡 DataChannel recibido de Unity: ' + event.channel.label, 'info');
+                const channel = event.channel;
+                
+                // Si Unity nos envía un canal "input", usarlo en lugar del nuestro
+                if (channel.label === 'input') {
+                    log('✅ Usando DataChannel de Unity para input!', 'success');
+                    dataChannel = channel; // Reemplazar con el canal de Unity
+                    
+                    channel.onopen = () => {
+                        log('📡 DataChannel "input" de Unity ABIERTO - Controles listos!', 'success');
+                    };
+                }
+                
+                channel.onmessage = (e) => {
+                    // Procesar mensajes de Unity si los hay
+                    try {
+                        const data = JSON.parse(e.data);
+                        log('📩 Mensaje de Unity: ' + JSON.stringify(data), 'info');
+                    } catch {
+                        log('📩 Datos de Unity: ' + e.data, 'info');
+                    }
+                };
+            };
+            
+            peerConnection.ontrack = (event) => {
+                log('🎬 Track recibido: ' + event.track.kind, 'success');
+                console.log('Track details:', event.track);
+                
+                if (event.track.kind === 'video') {
+                    // Crear un MediaStream si no existe
+                    let stream;
+                    if (event.streams && event.streams[0]) {
+                        stream = event.streams[0];
+                    } else {
+                        // Crear stream manualmente con el track
+                        stream = new MediaStream([event.track]);
+                        log('📦 Stream creado manualmente', 'info');
+                    }
+                    
+                    video.srcObject = stream;
+                    
+                    // Forzar reproducción
+                    video.muted = true;
+                    video.play().then(() => {
+                        log('▶️ Video reproduciéndose', 'success');
+                        streamInfo.textContent = 'Video activo';
+                        updateStatus(true, 'Streaming');
+                    }).catch(e => {
+                        log('Error reproduciendo: ' + e.message, 'error');
+                    });
+                    
+                    // Monitorear el video
+                    video.onloadedmetadata = () => {
+                        log(`📐 Resolución: ${video.videoWidth}x${video.videoHeight}`, 'success');
+                        streamInfo.textContent = `${video.videoWidth}x${video.videoHeight}`;
+                    };
+                    
+                    video.onplaying = () => {
+                        log('🎥 Video playing event', 'success');
+                    };
+                    
+                    // Verificar si hay frames
+                    setTimeout(() => {
+                        const tracks = stream.getVideoTracks();
+                        if (tracks.length > 0) {
+                            const settings = tracks[0].getSettings();
+                            log(`📊 Track settings: ${JSON.stringify(settings)}`, 'info');
+                        }
+                    }, 1000);
+                }
+            };
+            
+            peerConnection.onicecandidate = (event) => {
+                if (event.candidate) {
+                    sendToSignaling({
+                        type: 'candidate',
+                        from: connectionId,
+                        data: {
+                            candidate: event.candidate.candidate,
+                            sdpMLineIndex: event.candidate.sdpMLineIndex.toString(),
+                            sdpMid: event.candidate.sdpMid,
+                            connectionId: connectionId
+                        }
+                    });
+                }
+            };
+            
+            peerConnection.oniceconnectionstatechange = () => {
+                log('ICE state: ' + peerConnection.iceConnectionState);
+            };
+            
+            log('PeerConnection creado', 'info');
+        }
+        
+        // ==================== SIGNALING ====================
+        function sendToSignaling(message) {
+            if (websocket && websocket.readyState === WebSocket.OPEN) {
+                websocket.send(JSON.stringify(message));
+                log('📤 Enviado: ' + message.type, 'info');
+            }
+        }
+        
+        async function handleSignalingMessage(data) {
+            log('📥 Recibido: ' + data.type, 'info');
+            
+            switch (data.type) {
+                case 'connect':
+                    // Confirmación de conexión
+                    log('✅ Conectado al signaling', 'success');
+                    break;
+                    
+                case 'offer':
+                    // Unity envía offer, respondemos con answer
+                    if (data.data && data.data.sdp) {
+                        log('📥 Offer recibido de Unity', 'success');
+                        
+                        try {
+                            await peerConnection.setRemoteDescription({
+                                type: 'offer',
+                                sdp: data.data.sdp
+                            });
+                            
+                            const answer = await peerConnection.createAnswer();
+                            await peerConnection.setLocalDescription(answer);
+                            
+                            sendToSignaling({
+                                type: 'answer',
+                                from: connectionId,
+                                data: {
+                                    sdp: answer.sdp,
+                                    connectionId: connectionId
+                                }
+                            });
+                            
+                            log('📤 Answer enviado', 'success');
+                        } catch (e) {
+                            log('Error procesando offer: ' + e.message, 'error');
+                        }
+                    }
+                    break;
+                    
+                case 'answer':
+                    // Respuesta a nuestro offer
+                    if (data.data && data.data.sdp) {
+                        try {
+                            await peerConnection.setRemoteDescription({
+                                type: 'answer',
+                                sdp: data.data.sdp
+                            });
+                            log('✅ Answer procesado', 'success');
+                        } catch (e) {
+                            log('Error procesando answer: ' + e.message, 'error');
+                        }
+                    }
+                    break;
+                    
+                case 'candidate':
+                    // Candidato ICE
+                    if (data.data && data.data.candidate) {
+                        try {
+                            await peerConnection.addIceCandidate({
+                                candidate: data.data.candidate,
+                                sdpMLineIndex: parseInt(data.data.sdpMLineIndex) || 0,
+                                sdpMid: data.data.sdpMid
+                            });
+                        } catch (e) {
+                            // Ignorar errores de candidatos
+                        }
+                    }
+                    break;
+            }
+        }
+        
+        // ==================== CONEXIÓN ====================
+        async function connect() {
+            log('Conectando a ' + SIGNALING_URL + '...', 'info');
+            overlayStatus.textContent = 'Conectando...';
+            
+            // Generar ID único
+            connectionId = crypto.randomUUID();
+            
+            // Crear PeerConnection
+            createPeerConnection();
+            
+            // Conectar WebSocket
+            websocket = new WebSocket(SIGNALING_URL);
+            
+            websocket.onopen = async () => {
+                log('✅ WebSocket conectado', 'success');
+                updateStatus(false, 'Esperando stream...');
+                overlayStatus.textContent = 'Esperando stream de Unity...';
+                
+                // Enviar mensaje de conexión (igual que receiver)
+                sendToSignaling({
+                    type: 'connect',
+                    connectionId: connectionId
+                });
+                
+                // Crear y enviar offer (igual que receiver)
+                try {
+                    // Añadir transceiver para recibir video
+                    peerConnection.addTransceiver('video', { direction: 'recvonly' });
+                    
+                    const offer = await peerConnection.createOffer();
+                    await peerConnection.setLocalDescription(offer);
+                    
+                    sendToSignaling({
+                        type: 'offer',
+                        from: connectionId,
+                        data: {
+                            sdp: offer.sdp,
+                            connectionId: connectionId
+                        }
+                    });
+                    
+                    log('📤 Offer enviado', 'info');
+                } catch (e) {
+                    log('Error creando offer: ' + e.message, 'error');
+                }
+            };
+            
+            websocket.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    handleSignalingMessage(data);
+                } catch (e) {
+                    log('Error parseando mensaje: ' + e.message, 'error');
+                }
+            };
+            
+            websocket.onerror = (error) => {
+                log('❌ Error WebSocket', 'error');
+            };
+            
+            websocket.onclose = () => {
+                log('🔌 WebSocket cerrado', 'info');
+                updateStatus(false, 'Desconectado');
+                overlayStatus.textContent = 'Conexión cerrada';
+            };
+        }
+        
+        function disconnect() {
+            log('Desconectando...', 'info');
+            
+            if (peerConnection) {
+                peerConnection.close();
+                peerConnection = null;
+            }
+            
+            if (websocket) {
+                websocket.close();
+                websocket = null;
+            }
+            
+            video.srcObject = null;
+            connectionId = null;
+            updateStatus(false, 'Desconectado');
+            videoOverlay.classList.remove('hidden');
+            overlayStatus.textContent = 'Presiona "Conectar" para iniciar';
+            streamInfo.textContent = '--';
+        }
+        
+        // ==================== EVENT LISTENERS ====================
+        btnConnect.addEventListener('click', connect);
+        btnDisconnect.addEventListener('click', disconnect);
+        
+        // ==================== CONTROLES DEL DRON ====================
+        const keyElements = {
+            'w': document.getElementById('keyW'),
+            'a': document.getElementById('keyA'),
+            's': document.getElementById('keyS'),
+            'd': document.getElementById('keyD'),
+            'q': document.getElementById('keyQ'),
+            'e': document.getElementById('keyE'),
+            ' ': document.getElementById('keySpace'),
+            'shift': document.getElementById('keyShift')
+        };
+        
+        const focusHint = document.getElementById('focusHint');
+        const valH = document.getElementById('valH');
+        const valV = document.getElementById('valV');
+        const valE = document.getElementById('valE');
+        const valR = document.getElementById('valR');
+        
+        // Activar controles al hacer clic en el hint o video
+        focusHint.addEventListener('click', () => {
+            controlsEnabled = true;
+            focusHint.classList.add('active');
+            focusHint.textContent = '✅ Controles activos - Usa WASD, QE, Space, Shift';
+            log('🎮 Controles activados', 'success');
+        });
+        
+        video.addEventListener('click', () => {
+            controlsEnabled = true;
+            focusHint.classList.add('active');
+            focusHint.textContent = '✅ Controles activos - Usa WASD, QE, Space, Shift';
+        });
+        
+        // Keyboard event handlers
+        document.addEventListener('keydown', (e) => {
+            if (!controlsEnabled || !isConnected) return;
+            
+            const key = e.key.toLowerCase();
+            
+            // Prevenir scroll con space
+            if (key === ' ' || key === 'shift') {
+                e.preventDefault();
+            }
+            
+            if (!keysPressed.has(key)) {
+                keysPressed.add(key);
+                updateKeyVisual(key, true);
+                updateDroneInput();
+            }
+        });
+        
+        document.addEventListener('keyup', (e) => {
+            if (!controlsEnabled) return;
+            
+            const key = e.key.toLowerCase();
+            
+            if (keysPressed.has(key)) {
+                keysPressed.delete(key);
+                updateKeyVisual(key, false);
+                updateDroneInput();
+            }
+        });
+        
+        // También permitir controles con click/touch en las teclas visuales
+        Object.entries(keyElements).forEach(([key, element]) => {
+            if (!element) return;
+            
+            element.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                if (!isConnected) return;
+                controlsEnabled = true;
+                keysPressed.add(key);
+                updateKeyVisual(key, true);
+                updateDroneInput();
+            });
+            
+            element.addEventListener('mouseup', (e) => {
+                e.preventDefault();
+                keysPressed.delete(key);
+                updateKeyVisual(key, false);
+                updateDroneInput();
+            });
+            
+            element.addEventListener('mouseleave', (e) => {
+                if (keysPressed.has(key)) {
+                    keysPressed.delete(key);
+                    updateKeyVisual(key, false);
+                    updateDroneInput();
+                }
+            });
+            
+            // Touch support
+            element.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                if (!isConnected) return;
+                controlsEnabled = true;
+                keysPressed.add(key);
+                updateKeyVisual(key, true);
+                updateDroneInput();
+            });
+            
+            element.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                keysPressed.delete(key);
+                updateKeyVisual(key, false);
+                updateDroneInput();
+            });
+        });
+        
+        function updateKeyVisual(key, active) {
+            const element = keyElements[key];
+            if (element) {
+                if (active) {
+                    element.classList.add('active');
+                } else {
+                    element.classList.remove('active');
+                }
+            }
+        }
+        
+        function updateDroneInput() {
+            // Calcular input basado en teclas presionadas
+            droneInput.horizontal = 0;
+            droneInput.vertical = 0;
+            droneInput.elevation = 0;
+            droneInput.rotation = 0;
+            
+            // Movimiento horizontal (A/D)
+            if (keysPressed.has('d')) droneInput.horizontal = 1;
+            if (keysPressed.has('a')) droneInput.horizontal = -1;
+            
+            // Movimiento vertical (W/S - adelante/atrás)
+            if (keysPressed.has('w')) droneInput.vertical = 1;
+            if (keysPressed.has('s')) droneInput.vertical = -1;
+            
+            // Elevación (Space/Shift)
+            if (keysPressed.has(' ')) droneInput.elevation = 1;
+            if (keysPressed.has('shift')) droneInput.elevation = -1;
+            
+            // Rotación (Q/E)
+            if (keysPressed.has('e')) droneInput.rotation = 1;
+            if (keysPressed.has('q')) droneInput.rotation = -1;
+            
+            // Actualizar UI
+            valH.textContent = droneInput.horizontal.toFixed(2);
+            valV.textContent = droneInput.vertical.toFixed(2);
+            valE.textContent = droneInput.elevation.toFixed(2);
+            valR.textContent = droneInput.rotation.toFixed(2);
+            
+            // Enviar input a Unity
+            sendDroneInput();
+        }
+        
+        function sendDroneInput() {
+            const message = JSON.stringify({
+                type: 'input',
+                connectionId: connectionId,
+                horizontal: droneInput.horizontal,
+                vertical: droneInput.vertical,
+                elevation: droneInput.elevation,
+                rotation: droneInput.rotation
+            });
+            
+            // Enviar por DataChannel si está disponible
+            if (dataChannel && dataChannel.readyState === 'open') {
+                dataChannel.send(message);
+                console.log('📤 Enviado por DataChannel:', message);
+            } 
+            // Fallback: enviar por WebSocket de signaling
+            else if (websocket && websocket.readyState === WebSocket.OPEN) {
+                websocket.send(message);
+                console.log('📤 Enviado por WebSocket:', message);
+            } else {
+                console.warn('⚠️ No hay conexión para enviar:', message);
+            }
+        }
+        
+        // Monitorear estado del DataChannel
+        setInterval(() => {
+            const dcStatus = document.getElementById('dcStatus');
+            if (dcStatus) {
+                if (dataChannel && dataChannel.readyState === 'open') {
+                    dcStatus.textContent = '📡 DataChannel: Activo';
+                    dcStatus.style.color = '#22c55e';
+                } else if (websocket && websocket.readyState === WebSocket.OPEN) {
+                    dcStatus.textContent = '📡 Usando WebSocket';
+                    dcStatus.style.color = '#f59e0b';
+                } else {
+                    dcStatus.textContent = '📡 Sin conexión';
+                    dcStatus.style.color = '#ef4444';
+                }
+            }
+        }, 500);
+        
+        // Enviar input continuamente mientras hay teclas presionadas
+        setInterval(() => {
+            if (keysPressed.size > 0 && isConnected) {
+                sendDroneInput();
+            }
+        }, 50); // 20 veces por segundo
+        
+        // Log inicial
+        log('Página cargada. Servidor: ' + SIGNALING_URL, 'info');
+        log('💡 Controles: WASD (mover), QE (rotar), Space/Shift (altura)', 'info');
+    </script>
+</body>
+</html>

@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Drone Stream Viewer - Smart Home</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            font-family: 'Segoe UI', sans-serif;
+            color: white;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        h1 {
+            margin-bottom: 20px;
+            color: #00d4ff;
+            text-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
+        }
+        
+        .status-bar {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+        }
+        
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #ff4444;
+            transition: background 0.3s;
+        }
+        
+        .status-dot.connected {
+            background: #44ff44;
+            box-shadow: 0 0 10px #44ff44;
+        }
+        
+        .video-container {
+            position: relative;
+            width: 100%;
+            max-width: 1280px;
+            background: #000;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+        }
+        
+        #droneVideo {
+            width: 100%;
+            height: auto;
+            min-height: 480px;
+            background: linear-gradient(45deg, #1a1a1a 25%, #2a2a2a 25%, #2a2a2a 50%, #1a1a1a 50%, #1a1a1a 75%, #2a2a2a 75%);
+            background-size: 20px 20px;
+        }
+        
+        .video-overlay {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            padding: 8px 15px;
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        
+        .video-overlay.live {
+            background: rgba(255, 0, 0, 0.8);
+        }
+        
+        .controls {
+            margin-top: 20px;
+            display: flex;
+            gap: 15px;
+        }
+        
+        button {
+            padding: 12px 30px;
+            font-size: 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        #connectBtn {
+            background: linear-gradient(135deg, #00d4ff, #0099cc);
+            color: white;
+        }
+        
+        #connectBtn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0, 212, 255, 0.4);
+        }
+        
+        #connectBtn:disabled {
+            background: #666;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        #disconnectBtn {
+            background: linear-gradient(135deg, #ff4444, #cc0000);
+            color: white;
+        }
+        
+        #disconnectBtn:disabled {
+            background: #666;
+            cursor: not-allowed;
+        }
+        
+        .logs {
+            margin-top: 20px;
+            width: 100%;
+            max-width: 1280px;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 10px;
+            padding: 15px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .log-entry {
+            font-family: monospace;
+            font-size: 12px;
+            color: #aaa;
+            margin: 3px 0;
+        }
+        
+        .log-entry.success {
+            color: #44ff44;
+        }
+        
+        .log-entry.error {
+            color: #ff4444;
+        }
+        
+        .log-entry.info {
+            color: #00d4ff;
+        }
+        
+        .keyboard-guide {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+        }
+        
+        .keyboard-guide h3 {
+            margin-bottom: 10px;
+            color: #00d4ff;
+        }
+        
+        .keys {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+        }
+        
+        .key-group {
+            text-align: center;
+        }
+        
+        .key {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 5px;
+            line-height: 40px;
+            margin: 2px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>🚁 Drone Stream Viewer</h1>
+    
+    <div class="status-bar">
+        <div class="status-item">
+            <div id="wsStatus" class="status-dot"></div>
+            <span>WebSocket</span>
+        </div>
+        <div class="status-item">
+            <div id="rtcStatus" class="status-dot"></div>
+            <span>WebRTC</span>
+        </div>
+        <div class="status-item">
+            <div id="videoStatus" class="status-dot"></div>
+            <span>Video</span>
+        </div>
+    </div>
+    
+    <div class="video-container">
+        <video id="droneVideo" autoplay playsinline muted></video>
+        <div id="liveIndicator" class="video-overlay">⚫ OFFLINE</div>
+    </div>
+    
+    <div class="controls">
+        <button id="connectBtn" onclick="connect()">🔗 Conectar</button>
+        <button id="disconnectBtn" onclick="disconnect()" disabled>🔌 Desconectar</button>
+    </div>
+    
+    <div class="keyboard-guide">
+        <h3>🎮 Controles del Dron (cuando esté conectado)</h3>
+        <div class="keys">
+            <div class="key-group">
+                <div class="key">W</div><br>
+                <div class="key">A</div>
+                <div class="key">S</div>
+                <div class="key">D</div>
+                <p>Mover</p>
+            </div>
+            <div class="key-group">
+                <div class="key">Q</div>
+                <div class="key">E</div>
+                <p>Subir/Bajar</p>
+            </div>
+            <div class="key-group">
+                <div class="key">←</div>
+                <div class="key">→</div>
+                <p>Rotar</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="logs" id="logs"></div>
+
+    <script>
+        // Configuración
+        const SIGNALING_URL = 'ws://127.0.0.1:8888';
+        
+        // Variables globales
+        let websocket = null;
+        let peerConnection = null;
+        let connectionId = null;
+        let dataChannel = null;
+        
+        // Elementos DOM
+        const video = document.getElementById('droneVideo');
+        const connectBtn = document.getElementById('connectBtn');
+        const disconnectBtn = document.getElementById('disconnectBtn');
+        const wsStatusDot = document.getElementById('wsStatus');
+        const rtcStatusDot = document.getElementById('rtcStatus');
+        const videoStatusDot = document.getElementById('videoStatus');
+        const liveIndicator = document.getElementById('liveIndicator');
+        
+        // Configuración WebRTC
+        const rtcConfig = {
+            iceServers: [
+                { urls: 'stun:stun.l.google.com:19302' }
+            ]
+        };
+        
+        function log(message, type = 'info') {
+            const logsDiv = document.getElementById('logs');
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logsDiv.insertBefore(entry, logsDiv.firstChild);
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+        
+        async function connect() {
+            try {
+                connectBtn.disabled = true;
+                log('Conectando al servidor de señalización...', 'info');
+                
+                // Generar ID de conexión
+                connectionId = crypto.randomUUID();
+                log(`Connection ID: ${connectionId}`, 'info');
+                
+                // Conectar WebSocket
+                websocket = new WebSocket(SIGNALING_URL);
+                
+                websocket.onopen = () => {
+                    log('✅ WebSocket conectado', 'success');
+                    wsStatusDot.classList.add('connected');
+                    disconnectBtn.disabled = false;
+                    
+                    // Enviar mensaje de conexión
+                    sendSignalingMessage({
+                        type: 'connect',
+                        connectionId: connectionId
+                    });
+                    
+                    // Crear peer connection
+                    createPeerConnection();
+                };
+                
+                websocket.onmessage = (event) => {
+                    const message = JSON.parse(event.data);
+                    handleSignalingMessage(message);
+                };
+                
+                websocket.onerror = (error) => {
+                    log(`❌ Error WebSocket: ${error}`, 'error');
+                };
+                
+                websocket.onclose = () => {
+                    log('WebSocket desconectado', 'info');
+                    wsStatusDot.classList.remove('connected');
+                    cleanup();
+                };
+                
+            } catch (error) {
+                log(`❌ Error: ${error.message}`, 'error');
+                connectBtn.disabled = false;
+            }
+        }
+        
+        function createPeerConnection() {
+            log('Creando PeerConnection...', 'info');
+            
+            peerConnection = new RTCPeerConnection(rtcConfig);
+            
+            // Agregar transceivers para recibir video y audio
+            peerConnection.addTransceiver('video', { direction: 'recvonly' });
+            peerConnection.addTransceiver('audio', { direction: 'recvonly' });
+            
+            peerConnection.ontrack = (event) => {
+                log(`🎬 Track recibido: ${event.track.kind}`, 'success');
+                
+                if (event.track.kind === 'video') {
+                    video.srcObject = event.streams[0];
+                    videoStatusDot.classList.add('connected');
+                    liveIndicator.textContent = '🔴 LIVE';
+                    liveIndicator.classList.add('live');
+                    
+                    video.play().catch(e => log(`Error al reproducir: ${e}`, 'error'));
+                }
+            };
+            
+            peerConnection.onicecandidate = (event) => {
+                if (event.candidate) {
+                    log(`📤 Enviando ICE candidate`, 'info');
+                    sendSignalingMessage({
+                        type: 'candidate',
+                        candidate: event.candidate.candidate,
+                        sdpMid: event.candidate.sdpMid,
+                        sdpMLineIndex: event.candidate.sdpMLineIndex,
+                        connectionId: connectionId
+                    });
+                }
+            };
+            
+            peerConnection.oniceconnectionstatechange = () => {
+                log(`ICE State: ${peerConnection.iceConnectionState}`, 'info');
+                
+                if (peerConnection.iceConnectionState === 'connected' || 
+                    peerConnection.iceConnectionState === 'completed') {
+                    rtcStatusDot.classList.add('connected');
+                } else if (peerConnection.iceConnectionState === 'disconnected' ||
+                           peerConnection.iceConnectionState === 'failed') {
+                    rtcStatusDot.classList.remove('connected');
+                }
+            };
+            
+            // Crear data channel para controles
+            dataChannel = peerConnection.createDataChannel('drone-controls');
+            dataChannel.onopen = () => log('📡 DataChannel abierto', 'success');
+            dataChannel.onclose = () => log('DataChannel cerrado', 'info');
+            
+            // Crear y enviar offer
+            createAndSendOffer();
+        }
+        
+        async function createAndSendOffer() {
+            try {
+                log('Creando offer SDP...', 'info');
+                const offer = await peerConnection.createOffer();
+                await peerConnection.setLocalDescription(offer);
+                
+                log('📤 Enviando offer', 'info');
+                sendSignalingMessage({
+                    type: 'offer',
+                    sdp: offer.sdp,
+                    connectionId: connectionId
+                });
+            } catch (error) {
+                log(`❌ Error creando offer: ${error.message}`, 'error');
+            }
+        }
+        
+        async function handleSignalingMessage(message) {
+            log(`📥 Mensaje recibido: ${message.type}`, 'info');
+            
+            switch (message.type) {
+                case 'answer':
+                    if (message.data && message.data.sdp) {
+                        log('Procesando answer SDP...', 'info');
+                        await peerConnection.setRemoteDescription({
+                            type: 'answer',
+                            sdp: message.data.sdp
+                        });
+                        log('✅ Answer procesado', 'success');
+                    }
+                    break;
+                    
+                case 'candidate':
+                    if (message.data && message.data.candidate) {
+                        log('Agregando ICE candidate remoto...', 'info');
+                        await peerConnection.addIceCandidate({
+                            candidate: message.data.candidate,
+                            sdpMid: message.data.sdpMid,
+                            sdpMLineIndex: message.data.sdpMLineIndex
+                        });
+                    }
+                    break;
+                    
+                case 'offer':
+                    // Si Unity envía un offer, procesarlo como receiver
+                    log('Procesando offer de Unity...', 'info');
+                    await peerConnection.setRemoteDescription({
+                        type: 'offer',
+                        sdp: message.data.sdp
+                    });
+                    const answer = await peerConnection.createAnswer();
+                    await peerConnection.setLocalDescription(answer);
+                    sendSignalingMessage({
+                        type: 'answer',
+                        sdp: answer.sdp,
+                        connectionId: connectionId
+                    });
+                    log('✅ Answer enviado', 'success');
+                    break;
+            }
+        }
+        
+        function sendSignalingMessage(message) {
+            if (websocket && websocket.readyState === WebSocket.OPEN) {
+                websocket.send(JSON.stringify(message));
+            }
+        }
+        
+        function disconnect() {
+            log('Desconectando...', 'info');
+            cleanup();
+        }
+        
+        function cleanup() {
+            if (websocket) {
+                websocket.close();
+                websocket = null;
+            }
+            
+            if (peerConnection) {
+                peerConnection.close();
+                peerConnection = null;
+            }
+            
+            if (dataChannel) {
+                dataChannel.close();
+                dataChannel = null;
+            }
+            
+            connectionId = null;
+            
+            // Resetear UI
+            connectBtn.disabled = false;
+            disconnectBtn.disabled = true;
+            wsStatusDot.classList.remove('connected');
+            rtcStatusDot.classList.remove('connected');
+            videoStatusDot.classList.remove('connected');
+            liveIndicator.textContent = '⚫ OFFLINE';
+            liveIndicator.classList.remove('live');
+            video.srcObject = null;
+        }
+        
+        // Controles del teclado
+        document.addEventListener('keydown', (event) => {
+            if (dataChannel && dataChannel.readyState === 'open') {
+                const command = {
+                    type: 'input',
+                    key: event.key,
+                    action: 'down'
+                };
+                dataChannel.send(JSON.stringify(command));
+            }
+        });
+        
+        document.addEventListener('keyup', (event) => {
+            if (dataChannel && dataChannel.readyState === 'open') {
+                const command = {
+                    type: 'input',
+                    key: event.key,
+                    action: 'up'
+                };
+                dataChannel.send(JSON.stringify(command));
+            }
+        });
+        
+        // Limpiar al cerrar
+        window.onbeforeunload = () => cleanup();
+        
+        log('🚁 Drone Stream Viewer iniciado', 'info');
+        log('Haz clic en "Conectar" para iniciar', 'info');
+    </script>
+</body>
+</html>
