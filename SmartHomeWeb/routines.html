@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Home - Rutinas</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1a1a2e">
+</head>
+<body>
+    
+    <!-- Barra de navegacion superior -->
+    <header class="navbar">
+        <div class="navbar-brand">
+            <h1>Smart Home Control</h1>
+        </div>
+        <nav class="navbar-menu">
+            <a href="dashboard.html" class="nav-link">Dispositivos</a>
+            <a href="routines.html" class="nav-link active">Rutinas</a>
+        </nav>
+        <div class="navbar-user">
+            <span id="userInfo">Usuario</span>
+            <button id="logoutBtn" class="btn-secondary">Salir</button>
+        </div>
+    </header>
+    
+    <!-- Contenido principal -->
+    <main class="main-content">
+        
+        <!-- Panel de acciones -->
+        <section class="filters-panel">
+            <h2 class="section-title">Rutinas Configuradas</h2>
+            <div class="action-buttons">
+                <button id="addRoutineBtn" class="btn-primary btn-add">+ Nueva Rutina</button>
+            </div>
+        </section>
+        
+        <!-- Lista de rutinas -->
+        <section id="routinesGrid" class="routines-grid">
+            <div class="loading">Cargando rutinas...</div>
+        </section>
+        
+    </main>
+    
+    <!-- Panel de log (abajo) -->
+    <aside class="log-panel">
+        <div class="log-header">
+            <span>Log de eventos</span>
+            <button id="clearLogBtn" class="btn-small">Limpiar</button>
+        </div>
+        <div id="logContent" class="log-content">
+            <!-- Mensajes de log -->
+        </div>
+    </aside>
+    
+    <!-- Modal para crear/editar rutina -->
+    <div id="routineModal" class="modal hidden">
+        <div class="modal-content routine-modal">
+            <div class="modal-header">
+                <h3 id="modalTitle">Nueva Rutina</h3>
+                <button id="closeModalBtn" class="btn-close">&times;</button>
+            </div>
+            <form id="routineForm" class="routine-form">
+                
+                <!-- Nombre de la rutina -->
+                <div class="input-group">
+                    <label for="routineName">Nombre de la rutina</label>
+                    <input type="text" id="routineName" placeholder="Ej: Buenos dias, Noche de pelicula..." required>
+                </div>
+                
+                <!-- Descripcion -->
+                <div class="input-group">
+                    <label for="routineDescription">Descripcion (opcional)</label>
+                    <input type="text" id="routineDescription" placeholder="Describe que hace esta rutina">
+                </div>
+                
+                <!-- Acciones a ejecutar -->
+                <div class="input-group">
+                    <label>Acciones a ejecutar (en orden)</label>
+                    <div id="actionsContainer" class="actions-container">
+                        <!-- Las acciones se agregan dinamicamente -->
+                    </div>
+                    <button type="button" id="addActionBtn" class="btn-secondary btn-small-action">+ Agregar accion</button>
+                </div>
+                
+                <!-- Botones del formulario -->
+                <div class="form-buttons">
+                    <button type="button" id="cancelRoutineBtn" class="btn-secondary">Cancelar</button>
+                    <button type="submit" class="btn-primary">Guardar rutina</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Modal para agregar accion con controles interactivos -->
+    <div id="actionModal" class="modal hidden">
+        <div class="modal-content action-modal-large">
+            <div class="modal-header">
+                <h3>Agregar Accion</h3>
+                <button id="closeActionModalBtn" class="btn-close">&times;</button>
+            </div>
+            <div class="action-form">
+                
+                <!-- Seleccionar dispositivo -->
+                <div class="input-group">
+                    <label for="actionDevice">Selecciona un dispositivo</label>
+                    <select id="actionDevice" required>
+                        <option value="">Seleccionar dispositivo...</option>
+                    </select>
+                </div>
+                
+                <!-- Controles del dispositivo -->
+                <div class="input-group">
+                    <label>Controles disponibles</label>
+                    <div id="deviceControlsContainer" class="device-controls-container">
+                        <p class="text-muted">Selecciona un dispositivo para ver sus controles</p>
+                    </div>
+                </div>
+                
+                <p class="help-text">Haz click en cualquier control para agregarlo como accion</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/config.js?v=2"></script>
+    <script src="js/api.js?v=2"></script>
+    <script src="js/auth.js?v=2"></script>
+    <script src="js/devices.js?v=2"></script>
+    <script src="js/routines.js?v=2"></script>
+</body>
+</html>

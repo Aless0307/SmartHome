@@ -703,6 +703,564 @@ body {
 
 .hidden { display: none !important; }
 
+/* ============================================
+ * ESTILOS DE RUTINAS
+ * ============================================
+ */
+
+/* Header de seccion con titulo y botones */
+.section-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin: 0;
+}
+
+.action-buttons {
+    margin-left: auto;
+}
+
+.btn-add {
+    padding: 10px 20px;
+    font-size: 0.95rem;
+}
+
+/* Grid de rutinas */
+.routines-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 20px;
+}
+
+/* Estado vacio */
+.empty-state {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-secondary);
+}
+
+.empty-icon {
+    font-size: 4rem;
+    margin-bottom: 16px;
+    opacity: 0.5;
+}
+
+.empty-state p {
+    margin: 8px 0;
+}
+
+.text-muted {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+}
+
+/* Tarjeta de rutina */
+.routine-card {
+    background-color: var(--bg-card);
+    border-radius: 12px;
+    padding: 20px;
+    border: 1px solid var(--border-color);
+    transition: border-color 0.2s, opacity 0.2s;
+}
+
+.routine-card:hover {
+    border-color: rgba(255,255,255,0.2);
+}
+
+.routine-card.disabled {
+    opacity: 0.5;
+}
+
+.routine-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 12px;
+}
+
+.routine-info {
+    flex: 1;
+}
+
+.routine-name {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin: 0 0 6px 0;
+    color: var(--text-primary);
+}
+
+.routine-trigger {
+    font-size: 0.9rem;
+    color: var(--accent);
+    margin: 0 0 4px 0;
+}
+
+.routine-days {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin: 0;
+}
+
+/* Toggle switch */
+.toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 50px;
+    height: 26px;
+    flex-shrink: 0;
+}
+
+.toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--text-muted);
+    border-radius: 26px;
+    transition: 0.3s;
+}
+
+.toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 20px;
+    width: 20px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    border-radius: 50%;
+    transition: 0.3s;
+}
+
+.toggle-switch input:checked + .toggle-slider {
+    background-color: var(--accent);
+}
+
+.toggle-switch input:checked + .toggle-slider:before {
+    transform: translateX(24px);
+}
+
+/* Resumen de acciones */
+.routine-actions-summary {
+    padding: 10px 0;
+    border-top: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border-color);
+    margin-bottom: 12px;
+}
+
+.actions-count {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+/* Controles de rutina */
+.routine-controls {
+    display: flex;
+    gap: 8px;
+}
+
+.routine-controls button {
+    flex: 1;
+    padding: 8px 12px;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.btn-execute {
+    background-color: var(--accent);
+    color: #000;
+}
+
+.btn-execute:hover {
+    background-color: var(--accent-hover);
+}
+
+.btn-edit {
+    background-color: var(--bg-card-hover);
+    color: var(--text-primary);
+}
+
+.btn-edit:hover {
+    background-color: #475569;
+}
+
+.btn-delete {
+    background-color: rgba(239, 68, 68, 0.2);
+    color: var(--danger);
+}
+
+.btn-delete:hover {
+    background-color: rgba(239, 68, 68, 0.4);
+}
+
+/* Modal de rutina */
+.routine-modal {
+    width: 90%;
+    max-width: 500px;
+    background-color: var(--bg-card);
+    border-radius: 12px;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.action-modal {
+    width: 90%;
+    max-width: 400px;
+    background-color: var(--bg-card);
+    border-radius: 12px;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.modal-header h3 {
+    margin: 0;
+    font-size: 1.2rem;
+}
+
+.routine-form,
+.action-form {
+    padding: 20px;
+}
+
+/* Selector de dias */
+.days-selector {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.day-checkbox {
+    display: inline-block;
+    cursor: pointer;
+}
+
+.day-checkbox input {
+    display: none;
+}
+
+.day-checkbox span {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background-color: var(--bg-dark);
+    border: 2px solid var(--border-color);
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+.day-checkbox input:checked + span {
+    background-color: var(--accent);
+    border-color: var(--accent);
+    color: #000;
+}
+
+.day-checkbox:hover span {
+    border-color: var(--accent);
+}
+
+/* Contenedor de acciones */
+.actions-container {
+    background-color: var(--bg-dark);
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 12px;
+    min-height: 60px;
+}
+
+.action-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    background-color: var(--bg-card);
+    border-radius: 6px;
+    margin-bottom: 8px;
+}
+
+.action-item:last-child {
+    margin-bottom: 0;
+}
+
+.action-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.action-icon {
+    font-size: 1.2rem;
+}
+
+.action-details {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.action-device {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.action-command {
+    font-size: 0.8rem;
+    color: var(--accent);
+}
+
+.action-buttons {
+    display: flex;
+    gap: 4px;
+}
+
+.btn-move-up,
+.btn-move-down {
+    background: none;
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    cursor: pointer;
+    padding: 4px 6px;
+    border-radius: 4px;
+}
+
+.btn-move-up:hover,
+.btn-move-down:hover {
+    background-color: var(--bg-card-hover);
+    color: var(--text-primary);
+}
+
+.btn-remove-action {
+    background: none;
+    border: none;
+    color: var(--danger);
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+}
+
+.btn-remove-action:hover {
+    background-color: rgba(239, 68, 68, 0.2);
+}
+
+.btn-small-action {
+    width: 100%;
+    padding: 10px;
+    margin-top: 8px;
+}
+
+/* Botones del formulario */
+.form-buttons {
+    display: flex;
+    gap: 12px;
+    margin-top: 20px;
+}
+
+.form-buttons button {
+    flex: 1;
+    padding: 12px;
+}
+
+/* Modal de acciones grande */
+.action-modal-large {
+    width: 90%;
+    max-width: 550px;
+    background-color: var(--bg-card);
+    border-radius: 12px;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+/* Contenedor de controles de dispositivo */
+.device-controls-container {
+    background-color: var(--bg-dark);
+    border-radius: 8px;
+    padding: 16px;
+    min-height: 100px;
+}
+
+.device-controls-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.control-section {
+    background-color: var(--bg-card);
+    border-radius: 8px;
+    padding: 12px;
+}
+
+.control-label {
+    display: block;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin-bottom: 10px;
+    font-weight: 500;
+}
+
+.control-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.ctrl-btn {
+    padding: 10px 16px;
+    border: none;
+    border-radius: 6px;
+    background-color: var(--bg-dark);
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.ctrl-btn:hover {
+    background-color: var(--accent);
+    color: #000;
+}
+
+.ctrl-btn.small {
+    padding: 8px 12px;
+    font-size: 0.8rem;
+}
+
+/* Slider de control */
+.control-slider {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.control-slider input[type="range"] {
+    flex: 1;
+    height: 8px;
+    border-radius: 4px;
+    background: var(--bg-dark);
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+.control-slider input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+}
+
+.control-slider input[type="number"] {
+    width: 70px;
+    padding: 6px 8px;
+    background-color: var(--bg-dark);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    text-align: center;
+}
+
+.control-slider span {
+    min-width: 50px;
+    text-align: right;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+/* Botones de color en rutinas */
+.control-colors {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+}
+
+.control-colors .color-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    border: 2px solid rgba(255,255,255,0.3);
+    cursor: pointer;
+    transition: transform 0.2s, border-color 0.2s;
+}
+
+.control-colors .color-btn:hover {
+    transform: scale(1.1);
+    border-color: #fff;
+}
+
+.control-colors input[type="color"] {
+    width: 40px;
+    height: 32px;
+    padding: 0;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-radius: 6px;
+    cursor: pointer;
+    background: transparent;
+}
+
+/* Texto de ayuda */
+.help-text {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    margin-top: 12px;
+    font-style: italic;
+}
+
+/* Preview de acciones en tarjeta */
+.actions-preview {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.action-preview-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    background-color: var(--bg-dark);
+    border-radius: 4px;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+/* Descripcion de rutina */
+.routine-description {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin: 0;
+}
+
 /* Responsive */
 @media (max-width: 1024px) {
     .otros-grid { grid-template-columns: repeat(2, 1fr); }
