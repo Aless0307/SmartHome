@@ -16,11 +16,8 @@ import java.util.Map;
 import java.util.HashMap;
 
 /**
- * ═══════════════════════════════════════════════════════════════
- * SERVIDOR REST - Smart Home
- * API HTTP para control de dispositivos y debug
+ * SERVIDOR REST - Smart Home - API HTTP para control de dispositivos y debug
  * Puerto: 8080
- * ═══════════════════════════════════════════════════════════════
  */
 public class RestServer {
     
@@ -31,6 +28,7 @@ public class RestServer {
     private UserService userService;
     private DeviceService deviceService;
     private HouseService houseService;
+    private EnergyService energyService;
     
     public void start() throws IOException {
         // Inicializar MongoDB
@@ -41,6 +39,10 @@ public class RestServer {
         userService = new UserService();
         deviceService = new DeviceService();
         houseService = new HouseService();
+        energyService = new EnergyService();
+        
+        // Iniciar muestreo de energia (cada 30 segundos)
+        energyService.startSampling();
         
         // Crear servidor HTTP
         server = HttpServer.create(new InetSocketAddress(PORT), 0);
@@ -53,6 +55,7 @@ public class RestServer {
         server.createContext("/api/users", new UsersHandler());
         server.createContext("/api/login", new LoginHandler());
         server.createContext("/api/control", new ControlHandler());
+        server.createContext("/api/energy", new EnergyHandler());
         
         server.setExecutor(null);
         server.start();
@@ -71,14 +74,18 @@ public class RestServer {
         System.out.println("  GET  http://localhost:" + PORT + "/api/users     - Lista usuarios");
         System.out.println("  POST http://localhost:" + PORT + "/api/login     - Login");
         System.out.println("  POST http://localhost:" + PORT + "/api/control   - Controlar dispositivo");
+        System.out.println("  GET  http://localhost:" + PORT + "/api/energy    - Estadisticas de energia");
         System.out.println("\n[OK] Servidor listo...");
     }
     
     public void stop() {
+        if (energyService != null) {
+            energyService.stopSampling();
+        }
         if (server != null) {
             server.stop(0);
             MongoDBConnection.getInstance().close();
-            System.out.println("🛑 Servidor REST detenido");
+            System.out.println("[STOP] Servidor REST detenido");
         }
     }
     
@@ -329,22 +336,39 @@ public class RestServer {
                 return;
             }
             
+            // Guardar tipo para logging de porton
+            String tipoDispositivo = device.getType();
+            
             boolean success = false;
             
             switch (command.toUpperCase()) {
                 case "ON":
                     success = deviceService.updateStatus(deviceId, true);
+                    // Si es porton, registrar accion
+                    if (success && "door".equals(tipoDispositivo)) {
+                        energyService.logDoorAction(device, "ABRIR");
+                    }
                     break;
                 case "OFF":
                     success = deviceService.updateStatus(deviceId, false);
+                    // Si es porton, registrar accion
+                    if (success && "door".equals(tipoDispositivo)) {
+                        energyService.logDoorAction(device, "CERRAR");
+                    }
                     break;
                 case "TOGGLE":
-                    success = deviceService.updateStatus(deviceId, !device.isStatus());
+                    boolean nuevoEstado = !device.isStatus();
+                    success = deviceService.updateStatus(deviceId, nuevoEstado);
+                    // Si es porton, registrar accion
+                    if (success && "door".equals(tipoDispositivo)) {
+                        energyService.logDoorAction(device, nuevoEstado ? "ABRIR" : "CERRAR");
+                    }
                     break;
                 case "SET_VALUE":
                     String value = data.get("value");
                     if (value != null) {
-                        success = deviceService.updateValue(deviceId, Integer.parseInt(value));
+                        int nuevoValor = Integer.parseInt(value);
+                        success = deviceService.updateValue(deviceId, nuevoValor);
                     }
                     break;
                 case "SET_COLOR":
@@ -404,6 +428,163 @@ public class RestServer {
                 sendResponse(exchange, 500, "application/json", 
                     "{\"error\": \"Error actualizando dispositivo\"}");
             }
+        }
+    }
+    
+    /**
+     * GET /api/energy - Obtener estadisticas de consumo energetico
+     * Params:
+     *   - type: summary | byDevice | byType | byHour | byDay | current | logs
+     *   - houseId: ID de la casa (opcional, usa primera si no se proporciona)
+     *   - desde: timestamp inicio (para rangos)
+     *   - hasta: timestamp fin (para rangos)
+     *   - dias: numero de dias para byDay (default 7)
+     *   - limit: limite de logs a retornar (default 50)
+     */
+    class EnergyHandler implements HttpHandler {
+        @Override
+        public void handle(HttpExchange exchange) throws IOException {
+            setCorsHeaders(exchange);
+            
+            if ("OPTIONS".equals(exchange.getRequestMethod())) {
+                exchange.sendResponseHeaders(204, -1);
+                return;
+            }
+            
+            Map<String, String> params = parseQuery(exchange.getRequestURI().getQuery());
+            String type = params.getOrDefault("type", "summary");
+            
+            // Obtener houseId (usar primera casa si no se proporciona)
+            String houseId = params.get("houseId");
+            if (houseId == null) {
+                List<House> houses = houseService.findAll();
+                if (!houses.isEmpty()) {
+                    houseId = houses.get(0).getIdString();
+                } else {
+                    sendResponse(exchange, 404, "application/json", 
+                        "{\"error\": \"No hay casas registradas\"}");
+                    return;
+                }
+            }
+            
+            // Timestamps para rangos (default: ultimas 24 horas)
+            long ahora = System.currentTimeMillis();
+            long desde = params.containsKey("desde") ? 
+                Long.parseLong(params.get("desde")) : 
+                ahora - (24 * 60 * 60 * 1000);
+            long hasta = params.containsKey("hasta") ? 
+                Long.parseLong(params.get("hasta")) : ahora;
+            
+            StringBuilder json = new StringBuilder();
+            
+            switch (type) {
+                case "summary":
+                    // Resumen general: consumo total, actual, costo estimado
+                    double totalKwh = energyService.getTotalConsumption(houseId, desde, hasta);
+                    double currentWatts = energyService.getCurrentPowerUsage();
+                    double costoPorKwh = 1.20; // Precio promedio en MXN
+                    double costoEstimado = energyService.calculateCost(totalKwh, costoPorKwh);
+                    
+                    json.append("{")
+                        .append("\"totalKwh\": ").append(String.format(java.util.Locale.US, "%.4f", totalKwh)).append(",")
+                        .append("\"currentWatts\": ").append(String.format(java.util.Locale.US, "%.1f", currentWatts)).append(",")
+                        .append("\"costoEstimado\": ").append(String.format(java.util.Locale.US, "%.2f", costoEstimado)).append(",")
+                        .append("\"precioPorKwh\": ").append(costoPorKwh).append(",")
+                        .append("\"moneda\": \"MXN\",")
+                        .append("\"periodoDesde\": ").append(desde).append(",")
+                        .append("\"periodoHasta\": ").append(hasta)
+                        .append("}");
+                    break;
+                    
+                case "byDevice":
+                    // Consumo por dispositivo
+                    Map<String, Double> byDevice = energyService.getConsumptionByDevice(houseId, desde, hasta);
+                    json.append("{\"consumoByDevice\": {");
+                    int i = 0;
+                    for (Map.Entry<String, Double> entry : byDevice.entrySet()) {
+                        if (i++ > 0) json.append(",");
+                        json.append("\"").append(entry.getKey()).append("\": ")
+                            .append(String.format(java.util.Locale.US, "%.4f", entry.getValue()));
+                    }
+                    json.append("}}");
+                    break;
+                    
+                case "byType":
+                    // Consumo por tipo de dispositivo
+                    Map<String, Double> byType = energyService.getConsumptionByType(houseId, desde, hasta);
+                    json.append("{\"consumoByType\": {");
+                    int j = 0;
+                    for (Map.Entry<String, Double> entry : byType.entrySet()) {
+                        if (j++ > 0) json.append(",");
+                        json.append("\"").append(entry.getKey()).append("\": ")
+                            .append(String.format(java.util.Locale.US, "%.4f", entry.getValue()));
+                    }
+                    json.append("}}");
+                    break;
+                    
+                case "byHour":
+                    // Consumo por hora (ultimas 24h)
+                    Map<Integer, Double> byHour = energyService.getConsumptionByHour(houseId);
+                    json.append("{\"consumoByHour\": {");
+                    for (int h = 0; h < 24; h++) {
+                        if (h > 0) json.append(",");
+                        json.append("\"").append(h).append("\": ")
+                            .append(String.format(java.util.Locale.US, "%.4f", byHour.get(h)));
+                    }
+                    json.append("}}");
+                    break;
+                    
+                case "byDay":
+                    // Consumo por dia
+                    int dias = params.containsKey("dias") ? 
+                        Integer.parseInt(params.get("dias")) : 7;
+                    Map<String, Double> byDay = energyService.getConsumptionByDay(houseId, dias);
+                    json.append("{\"consumoByDay\": {");
+                    int k = 0;
+                    for (Map.Entry<String, Double> entry : byDay.entrySet()) {
+                        if (k++ > 0) json.append(",");
+                        json.append("\"").append(entry.getKey()).append("\": ")
+                            .append(String.format(java.util.Locale.US, "%.4f", entry.getValue()));
+                    }
+                    json.append("}}");
+                    break;
+                    
+                case "current":
+                    // Dispositivos actualmente consumiendo
+                    Map<String, Double> activeDevices = energyService.getActiveDevicesConsumption();
+                    double totalWatts = 0;
+                    json.append("{\"dispositivosActivos\": {");
+                    int m = 0;
+                    for (Map.Entry<String, Double> entry : activeDevices.entrySet()) {
+                        if (m++ > 0) json.append(",");
+                        json.append("\"").append(entry.getKey()).append("\": ")
+                            .append(String.format(java.util.Locale.US, "%.1f", entry.getValue()));
+                        totalWatts += entry.getValue();
+                    }
+                    json.append("}, \"totalWatts\": ").append(String.format(java.util.Locale.US, "%.1f", totalWatts)).append("}");
+                    break;
+                    
+                case "logs":
+                    // Ultimos eventos de energia
+                    int limit = params.containsKey("limit") ? 
+                        Integer.parseInt(params.get("limit")) : 50;
+                    java.util.List<com.smarthome.model.EnergyLog> logs = 
+                        energyService.getRecentLogs(houseId, limit);
+                    json.append("{\"logs\": [");
+                    for (int l = 0; l < logs.size(); l++) {
+                        if (l > 0) json.append(",");
+                        json.append(logs.get(l).toJson());
+                    }
+                    json.append("]}");
+                    break;
+                    
+                default:
+                    sendResponse(exchange, 400, "application/json", 
+                        "{\"error\": \"Tipo de consulta no valido. Use: summary, byDevice, byType, byHour, byDay, current, logs\"}");
+                    return;
+            }
+            
+            sendResponse(exchange, 200, "application/json", json.toString());
         }
     }
     

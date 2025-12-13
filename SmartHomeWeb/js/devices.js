@@ -215,14 +215,17 @@ var Devices = {
         var isDoor = (type === 'door');
         var isTV = (type === 'tv');
         
-        // Para puertas: status=true significa cerrado
+        // Para puertas: status=true significa cerrado, pero queremos mostrar abierto/cerrado correctamente
+        // Para TV: status=true significa mostrada
         var displayStatus = isDoor ? !status : status;
         
         // Textos segun tipo
         var statusOn = isDoor ? 'Abierto' : (isTV ? 'Mostrada' : 'Encendido');
         var statusOff = isDoor ? 'Cerrado' : (isTV ? 'Escondida' : 'Apagado');
-        var btnOnLabel = isDoor ? 'Abrir' : (isTV ? 'Esconder' : 'ON');
-        var btnOffLabel = isDoor ? 'Cerrar' : (isTV ? 'Mostrar' : 'OFF');
+        
+        // Para TV: boton verde = Mostrar (envia ON), boton rojo = Esconder (envia OFF)
+        var btnOnLabel = isDoor ? 'Abrir' : (isTV ? 'Mostrar' : 'ON');
+        var btnOffLabel = isDoor ? 'Cerrar' : (isTV ? 'Esconder' : 'OFF');
         
         var card = document.createElement('div');
         card.className = 'device-card compact-card';
@@ -236,8 +239,8 @@ var Devices = {
                 '<span class="status-dot"></span> ' + (displayStatus ? statusOn : statusOff) +
             '</div>' +
             '<div class="device-controls">' +
-                '<button class="btn-on" data-action="' + (isDoor || isTV ? 'OFF' : 'ON') + '">' + btnOnLabel + '</button>' +
-                '<button class="btn-off" data-action="' + (isDoor || isTV ? 'ON' : 'OFF') + '">' + btnOffLabel + '</button>' +
+                '<button class="btn-on" data-action="' + (isDoor ? 'OFF' : 'ON') + '">' + btnOnLabel + '</button>' +
+                '<button class="btn-off" data-action="' + (isDoor ? 'ON' : 'OFF') + '">' + btnOffLabel + '</button>' +
             '</div>';
         
         this.attachBasicListeners(card, device);
@@ -707,7 +710,7 @@ var Devices = {
             if (type === 'door') {
                 statusText = isOn ? 'Cerrado' : 'Abierto';
             } else if (type === 'tv') {
-                statusText = isOn ? 'Escondida' : 'Mostrada';
+                statusText = isOn ? 'Mostrada' : 'Escondida';
             } else if (type === 'light') {
                 statusText = isOn ? 'Encendida' : 'Apagada';
             }

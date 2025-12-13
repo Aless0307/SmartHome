@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Home - Consumo Energetico</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1a1a2e">
+    <!-- Chart.js para graficas -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    
+    <!-- Barra de navegacion superior -->
+    <header class="navbar">
+        <div class="navbar-brand">
+            <h1>Smart Home Control</h1>
+        </div>
+        <nav class="navbar-menu">
+            <a href="dashboard.html" class="nav-link">Dispositivos</a>
+            <a href="routines.html" class="nav-link">Rutinas</a>
+            <a href="energy.html" class="nav-link active">Energia</a>
+        </nav>
+        <div class="navbar-user">
+            <span id="userInfo">Usuario</span>
+            <button id="logoutBtn" class="btn-secondary">Salir</button>
+        </div>
+    </header>
+    
+    <!-- Contenido principal -->
+    <main class="main-content energy-page">
+        
+        <!-- Tarjetas de resumen -->
+        <section class="energy-summary">
+            <div class="summary-card">
+                <div class="summary-icon">&#9889;</div>
+                <div class="summary-data">
+                    <span class="summary-value" id="currentWatts">0</span>
+                    <span class="summary-unit">W</span>
+                </div>
+                <span class="summary-label">Consumo Actual</span>
+            </div>
+            
+            <div class="summary-card">
+                <div class="summary-icon">&#128161;</div>
+                <div class="summary-data">
+                    <span class="summary-value" id="todayKwh">0.00</span>
+                    <span class="summary-unit">kWh</span>
+                </div>
+                <span class="summary-label">Hoy</span>
+            </div>
+            
+            <div class="summary-card">
+                <div class="summary-icon">&#128176;</div>
+                <div class="summary-data">
+                    <span class="summary-value" id="estimatedCost">$0.00</span>
+                    <span class="summary-unit">MXN</span>
+                </div>
+                <span class="summary-label">Costo Estimado (24h)</span>
+            </div>
+        </section>
+        
+        <!-- Graficas -->
+        <section class="energy-charts">
+            <!-- Consumo por hora -->
+            <div class="chart-container">
+                <h3>Consumo por Hora (Ultimas 24h)</h3>
+                <canvas id="chartByHour"></canvas>
+            </div>
+            
+            <!-- Consumo por tipo -->
+            <div class="chart-container">
+                <h3>Consumo por Tipo de Dispositivo</h3>
+                <canvas id="chartByType"></canvas>
+            </div>
+        </section>
+        
+        <!-- Segunda fila de graficas -->
+        <section class="energy-charts">
+            <!-- Consumo por dia -->
+            <div class="chart-container">
+                <h3>Consumo Diario (Ultimos 7 dias)</h3>
+                <canvas id="chartByDay"></canvas>
+            </div>
+            
+            <!-- Dispositivos activos -->
+            <div class="chart-container active-devices-container">
+                <h3>Dispositivos Activos Ahora</h3>
+                <div id="activeDevicesList" class="active-devices-list">
+                    <!-- Lista de dispositivos activos -->
+                </div>
+                <div class="active-devices-total">
+                    Total: <span id="totalActiveWatts">0</span> W
+                </div>
+            </div>
+        </section>
+        
+        <!-- Historial de eventos -->
+        <section class="energy-logs">
+            <h3>Historial de Eventos de Energia</h3>
+            <div class="logs-controls">
+                <button id="refreshLogsBtn" class="btn-secondary">Actualizar</button>
+                <select id="logsLimit">
+                    <option value="20">20 eventos</option>
+                    <option value="50" selected>50 eventos</option>
+                    <option value="100">100 eventos</option>
+                </select>
+            </div>
+            <div id="energyLogsTable" class="logs-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Fecha/Hora</th>
+                            <th>Dispositivo</th>
+                            <th>Tipo</th>
+                            <th>Evento</th>
+                            <th>Watts</th>
+                            <th>Duracion</th>
+                            <th>kWh</th>
+                        </tr>
+                    </thead>
+                    <tbody id="logsBody">
+                        <!-- Eventos se cargan dinamicamente -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+        
+        <footer class="energy-footer">
+            <p>* CO2 evitado calculado comparando con consumo promedio de hogares mexicanos. 
+            Los valores mostrados son estimaciones basadas en el consumo registrado.</p>
+        </footer>
+        
+    </main>
+
+    <!-- Scripts -->
+    <script src="js/config.js?v=2"></script>
+    <script src="js/api.js?v=2"></script>
+    <script src="js/auth.js?v=2"></script>
+    <script src="js/energy.js?v=1"></script>
+</body>
+</html>
