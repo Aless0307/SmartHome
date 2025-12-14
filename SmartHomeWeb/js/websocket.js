@@ -25,9 +25,9 @@ var WebSocketClient = {
     connect: function() {
         var self = this;
         
-        // Obtener host del servidor (mismo que REST pero puerto 5002)
-        var serverHost = CONFIG.SERVER_HOST || window.location.hostname || 'localhost';
-        var wsUrl = 'ws://' + serverHost + ':5002';
+        // Usar /ws a través de nginx (hace proxy a puerto 5002)
+        var wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        var wsUrl = wsProtocol + '//' + window.location.host + '/ws';
         
         console.log('[WS] Conectando a:', wsUrl);
         

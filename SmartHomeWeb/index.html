@@ -23,13 +23,13 @@
             <!-- Formulario de login -->
             <form id="loginForm" class="login-form">
                 
-                <!-- Configuracion del servidor -->
-                <div class="server-config">
+                <!-- Configuracion del servidor (oculto - usa nginx proxy) -->
+                <div class="server-config" style="display: none;">
                     <div class="input-group inline">
                         <label for="serverHost">Servidor:</label>
-                        <input type="text" id="serverHost" value="localhost" placeholder="IP del servidor">
+                        <input type="text" id="serverHost" value="" placeholder="IP del servidor">
                         <span>:</span>
-                        <input type="number" id="serverPort" value="8080" placeholder="Puerto">
+                        <input type="number" id="serverPort" value="" placeholder="Puerto">
                     </div>
                 </div>
                 

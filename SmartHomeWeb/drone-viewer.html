@@ -249,10 +249,10 @@
 
     <script>
         // Configuración
-        // Usar el mismo host que sirve la página, o localhost si es archivo local
-        const SIGNALING_HOST = window.location.hostname || '127.0.0.1';
-        const SIGNALING_PORT = 8888;
-        const SIGNALING_URL = `ws://${SIGNALING_HOST}:${SIGNALING_PORT}`;
+        // Usar WebSocket seguro (wss) si la página es https, sino ws
+        // Conecta a través del proxy nginx en /signaling
+        const WS_PROTOCOL = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const SIGNALING_URL = `${WS_PROTOCOL}//${window.location.host}/signaling`;
         console.log('🌐 Signaling URL:', SIGNALING_URL);
         
         // Variables globales
