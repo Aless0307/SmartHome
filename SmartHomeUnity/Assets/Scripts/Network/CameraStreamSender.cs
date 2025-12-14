@@ -113,7 +113,7 @@ public class CameraStreamSender : MonoBehaviour
     {
         cameraStates.Clear();
         
-        SecurityCamera[] foundCameras = FindObjectsOfType<SecurityCamera>();
+        SecurityCamera[] foundCameras = FindObjectsByType<SecurityCamera>(FindObjectsSortMode.None);
         
         foreach (var cam in foundCameras)
         {
