@@ -135,31 +135,5 @@ public class DataChannelInputReceiver : MonoBehaviour, IDataChannel
     
     void OnGUI()
     {
-        GUILayout.BeginArea(new Rect(10, Screen.height - 180, 300, 170));
-        GUILayout.BeginVertical("box");
-        
-        GUILayout.Label("📡 DATA CHANNEL INPUT", new GUIStyle(GUI.skin.label) 
-        { 
-            fontStyle = FontStyle.Bold,
-            normal = { textColor = Color.cyan }
-        });
-        
-        GUILayout.Label($"Status: {statusText}");
-        GUILayout.Label($"Channel: {(Channel != null ? Channel.Label : "ninguno")}");
-        GUILayout.Label($"State: {(Channel != null ? Channel.ReadyState.ToString() : "N/A")}");
-        GUILayout.Label($"Mensajes: {messagesReceived}");
-        
-        bool receiving = (DateTime.Now - lastReceiveTime).TotalSeconds < 1f;
-        GUI.color = receiving ? Color.green : Color.gray;
-        GUILayout.Label(receiving ? "● Recibiendo" : "○ Sin datos");
-        GUI.color = Color.white;
-        
-        if (!string.IsNullOrEmpty(lastMessage) && lastMessage.Length > 50)
-        {
-            GUILayout.Label($"Último: {lastMessage.Substring(0, 50)}...");
-        }
-        
-        GUILayout.EndVertical();
-        GUILayout.EndArea();
     }
 }

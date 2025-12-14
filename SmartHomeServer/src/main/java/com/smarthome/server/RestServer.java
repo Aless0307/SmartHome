@@ -271,10 +271,12 @@ public class RestServer {
                 return;
             }
             
-            User user = userService.login(username, password);
+            // Obtener IP del cliente para rate limiting
+            String clientIp = exchange.getRemoteAddress().getAddress().getHostAddress();
+            
+            User user = userService.login(username, password, clientIp);
             if (user != null) {
                 // Registrar actividad de login
-                String clientIp = exchange.getRemoteAddress().getAddress().getHostAddress();
                 activityService.logLogin(username, clientIp);
                 
                 // Generar token JWT

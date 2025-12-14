@@ -212,34 +212,5 @@ public class StreamingDiagnostic : MonoBehaviour
     
     void OnGUI()
     {
-        GUILayout.BeginArea(new Rect(10, 200, 400, 200));
-        GUILayout.BeginVertical("box");
-        
-        GUILayout.Label("=== Streaming Diagnostic ===");
-        
-        bool isRunning = false;
-        if (signalingManager != null)
-        {
-            var runningField = typeof(SignalingManager).GetField("m_running", 
-                BindingFlags.NonPublic | BindingFlags.Instance);
-            if (runningField != null)
-            {
-                isRunning = (bool)runningField.GetValue(signalingManager);
-            }
-        }
-        
-        GUILayout.Label($"SignalingManager Running: {(isRunning ? "YES" : "NO")}");
-        
-        int streamCount = 0;
-        if (broadcast != null)
-        {
-            foreach (var _ in broadcast.Streams) streamCount++;
-        }
-        GUILayout.Label($"Active Streams: {streamCount}");
-        
-        GUILayout.Label($"VideoStreamSender: {(videoStreamSender != null && videoStreamSender.enabled ? "OK" : "NOT OK")}");
-        
-        GUILayout.EndVertical();
-        GUILayout.EndArea();
     }
 }

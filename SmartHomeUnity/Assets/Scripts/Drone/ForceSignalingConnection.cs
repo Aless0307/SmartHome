@@ -153,45 +153,7 @@ public class ForceSignalingConnection : MonoBehaviour
     
     void OnGUI()
     {
-        GUILayout.BeginArea(new Rect(10, 350, 500, 200));
-        GUILayout.BeginVertical("box");
-        
-        GUILayout.Label("=== SIGNALING DEBUG ===");
-        
-        bool isRunning = false;
-        if (signalingManager != null)
-        {
-            var runningField = typeof(SignalingManager).GetField("m_running", 
-                BindingFlags.NonPublic | BindingFlags.Instance);
-            if (runningField != null)
-            {
-                isRunning = (bool)runningField.GetValue(signalingManager);
-            }
-        }
-        
-        GUIStyle greenStyle = new GUIStyle(GUI.skin.label) { normal = { textColor = Color.green } };
-        GUIStyle redStyle = new GUIStyle(GUI.skin.label) { normal = { textColor = Color.red } };
-        GUIStyle yellowStyle = new GUIStyle(GUI.skin.label) { normal = { textColor = Color.yellow } };
-        
-        GUILayout.Label($"SignalingManager Running: {isRunning}", isRunning ? greenStyle : redStyle);
-        GUILayout.Label($"Status: {signalingStatus}", yellowStyle);
-        GUILayout.Label($"Expected URL: {signalingUrl}");
-        
-        GUILayout.Space(10);
-        
-        if (GUILayout.Button("🔄 Restart Signaling"))
-        {
-            RestartSignaling();
-        }
-        
-        GUILayout.Space(5);
-        GUILayout.Label("Si no hay conexión, prueba:", yellowStyle);
-        GUILayout.Label("1. Desmarcar 'Use Default Settings' en SignalingManager");
-        GUILayout.Label("2. Reiniciar Unity y webserver");
-        
-        GUILayout.EndVertical();
-        GUILayout.EndArea();
-    }
+           }
     
     void RestartSignaling()
     {

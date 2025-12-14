@@ -5,6 +5,9 @@ import com.mongodb.client.MongoCursor;
 import com.mongodb.client.result.DeleteResult;
 import com.smarthome.database.MongoDBConnection;
 import com.smarthome.model.User;
+import com.smarthome.security.InputValidator;
+import com.smarthome.security.PasswordUtils;
+import com.smarthome.security.RateLimiter;
 import org.bson.Document;
 import org.bson.types.ObjectId;
 
@@ -27,14 +30,35 @@ public class UserService {
     }
     
     /**
-     * Crear un nuevo usuario
+     * Crear un nuevo usuario con password hasheado
      */
     public User create(User user) {
+        // Validar entrada
+        String validationError = InputValidator.validateUserInput(
+            user.getUsername(), 
+            user.getPassword(), 
+            user.getEmail()
+        );
+        if (validationError != null) {
+            System.err.println("[ERROR] Validacion fallida: " + validationError);
+            return null;
+        }
+        
+        // Sanitizar username y email
+        user.setUsername(InputValidator.sanitize(user.getUsername()));
+        if (user.getEmail() != null) {
+            user.setEmail(InputValidator.sanitize(user.getEmail()));
+        }
+        
         // Verificar si el username ya existe
         if (findByUsername(user.getUsername()) != null) {
             System.err.println("[ERROR] Usuario ya existe: " + user.getUsername());
             return null;
         }
+        
+        // Hashear password antes de guardar
+        String hashedPassword = PasswordUtils.createHash(user.getPassword());
+        user.setPassword(hashedPassword);
         
         Document doc = user.toDocument();
         collection.insertOne(doc);
@@ -72,19 +96,72 @@ public class UserService {
     }
     
     /**
-     * Login - verificar credenciales
+     * Login - verificar credenciales con rate limiting y password hashing
      */
     public User login(String username, String password) {
-        Document doc = collection.find(
-            and(eq("username", username), eq("password", password))
-        ).first();
+        return login(username, password, null);
+    }
+    
+    /**
+     * Login con IP para rate limiting
+     */
+    public User login(String username, String password, String clientIp) {
+        // Rate limiting por IP o username
+        String rateLimitKey = clientIp != null ? clientIp : username;
+        RateLimiter limiter = RateLimiter.getInstance();
+        
+        if (limiter.isBlocked(rateLimitKey)) {
+            long remaining = limiter.getBlockTimeRemaining(rateLimitKey);
+            System.err.println("[SECURITY] Usuario bloqueado: " + rateLimitKey + 
+                             " (esperar " + remaining + "s)");
+            return null;
+        }
+        
+        // Sanitizar entrada
+        username = InputValidator.sanitize(username);
+        
+        // Buscar usuario por username
+        Document doc = collection.find(eq("username", username)).first();
         
         if (doc != null) {
-            System.out.println("[OK] Login exitoso: " + username);
-            return User.fromDocument(doc);
+            String storedPassword = doc.getString("password");
+            
+            // Verificar password (soporta hash y texto plano para migracion)
+            if (PasswordUtils.verifyPassword(password, storedPassword)) {
+                System.out.println("[OK] Login exitoso: " + username);
+                limiter.clearAttempts(rateLimitKey);
+                
+                // Migrar password antiguo a hash si es necesario
+                if (!PasswordUtils.isHashed(storedPassword)) {
+                    migratePasswordToHash(doc.getObjectId("_id"), password);
+                }
+                
+                return User.fromDocument(doc);
+            }
         }
-        System.out.println("[ERROR] Login fallido: " + username);
+        
+        // Login fallido - registrar intento
+        limiter.recordFailedAttempt(rateLimitKey);
+        int remaining = limiter.getRemainingAttempts(rateLimitKey);
+        System.out.println("[ERROR] Login fallido: " + username + 
+                          " (intentos restantes: " + remaining + ")");
         return null;
+    }
+    
+    /**
+     * Migra un password antiguo (texto plano) a hash
+     */
+    private void migratePasswordToHash(ObjectId userId, String plainPassword) {
+        try {
+            String hashedPassword = PasswordUtils.createHash(plainPassword);
+            collection.updateOne(
+                eq("_id", userId),
+                new Document("$set", new Document("password", hashedPassword))
+            );
+            System.out.println("[OK] Password migrado a hash para usuario: " + userId);
+        } catch (Exception e) {
+            System.err.println("[ERROR] Error al migrar password: " + e.getMessage());
+        }
     }
     
     /**

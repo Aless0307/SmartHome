@@ -49,37 +49,6 @@ public class StreamingFixer : MonoBehaviour
 
     void OnGUI()
     {
-        GUILayout.BeginArea(new Rect(10, 10, 600, 800));
-        GUILayout.BeginVertical("box");
-        
-        GUILayout.Label("🛠️ HERRAMIENTA DE REPARACIÓN DE STREAMING", new GUIStyle(GUI.skin.label) { fontSize = 16, fontStyle = FontStyle.Bold });
-        GUILayout.Label("Presiona los botones o usa las teclas 1, 2, 3");
-        
-        GUILayout.Space(10);
-        
-        if (GUILayout.Button("1. PROBAR CONEXIÓN RAW (Tecla 1)", GUILayout.Height(40)))
-        {
-            TestRawConnection();
-        }
-        
-        if (GUILayout.Button("2. FORZAR CONFIGURACIÓN (Tecla 2)", GUILayout.Height(40)))
-        {
-            StartCoroutine(ForceConfiguration());
-        }
-        
-        if (GUILayout.Button("3. REINICIAR SIGNALING (Tecla 3)", GUILayout.Height(30)))
-        {
-            RestartSignaling();
-        }
-
-        GUILayout.Space(10);
-        GUILayout.Label("LOG DE ESTADO:");
-        scrollPos = GUILayout.BeginScrollView(scrollPos, GUILayout.Height(400));
-        GUILayout.TextArea(statusLog);
-        GUILayout.EndScrollView();
-        
-        GUILayout.EndVertical();
-        GUILayout.EndArea();
     }
 
     void Log(string msg)
