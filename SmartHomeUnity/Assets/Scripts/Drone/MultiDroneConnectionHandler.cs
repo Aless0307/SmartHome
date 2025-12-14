@@ -24,9 +24,13 @@ public class MultiDroneConnectionHandler : MonoBehaviour
     [Header("Debug")]
     [SerializeField] private bool showDebugLogs = true;
     
+    [Header("Polling Settings")]
+    [SerializeField] private float pollingInterval = 1f; // Revisar cada segundo
+    
     // Track de conexiones activas
     private HashSet<string> activeConnections = new HashSet<string>();
     private HashSet<string> processedConnections = new HashSet<string>();
+    private float lastPollTime = 0f;
     
     private void Start()
     {
@@ -201,5 +205,110 @@ public class MultiDroneConnectionHandler : MonoBehaviour
     public int GetActiveConnectionCount()
     {
         return activeConnections.Count;
+    }
+    
+    private void Update()
+    {
+        // Polling para detectar desconexiones
+        if (Time.time - lastPollTime >= pollingInterval)
+        {
+            lastPollTime = Time.time;
+            CheckForDisconnections();
+        }
+    }
+    
+    /// <summary>
+    /// Revisar si alguna conexión se ha cerrado
+    /// </summary>
+    private void CheckForDisconnections()
+    {
+        if (broadcast == null) return;
+        if (activeConnections.Count == 0) return;
+        
+        // Obtener conexiones actuales del Broadcast usando reflexión
+        HashSet<string> currentConnections = GetBroadcastConnections();
+        
+        // Encontrar conexiones que ya no existen
+        List<string> disconnected = new List<string>();
+        foreach (string connId in activeConnections)
+        {
+            if (!currentConnections.Contains(connId))
+            {
+                disconnected.Add(connId);
+            }
+        }
+        
+        // Procesar desconexiones
+        foreach (string connId in disconnected)
+        {
+            if (showDebugLogs)
+            {
+                Debug.Log($"[MultiDroneConnectionHandler] 🔴 Conexión perdida detectada: {connId}");
+            }
+            OnConnectionClosed(connId);
+        }
+    }
+    
+    /// <summary>
+    /// Obtener las conexiones activas del Broadcast usando reflexión
+    /// </summary>
+    private HashSet<string> GetBroadcastConnections()
+    {
+        HashSet<string> connections = new HashSet<string>();
+        
+        if (broadcast == null) return connections;
+        
+        var type = broadcast.GetType();
+        var bindingFlags = System.Reflection.BindingFlags.NonPublic | 
+                          System.Reflection.BindingFlags.Public | 
+                          System.Reflection.BindingFlags.Instance;
+        
+        // Buscar campos que contengan las conexiones
+        foreach (var field in type.GetFields(bindingFlags))
+        {
+            string name = field.Name.ToLower();
+            if (name.Contains("connection") || name.Contains("peer") || name.Contains("client"))
+            {
+                var value = field.GetValue(broadcast);
+                if (value != null)
+                {
+                    // Si es un diccionario
+                    if (value is System.Collections.IDictionary dict)
+                    {
+                        foreach (var key in dict.Keys)
+                        {
+                            if (key != null)
+                                connections.Add(key.ToString());
+                        }
+                    }
+                    // Si es una lista o colección
+                    else if (value is System.Collections.IEnumerable enumerable && !(value is string))
+                    {
+                        foreach (var item in enumerable)
+                        {
+                            if (item != null)
+                            {
+                                // Intentar obtener connectionId del item
+                                var itemType = item.GetType();
+                                var connIdProp = itemType.GetProperty("connectionId") ?? 
+                                                itemType.GetProperty("ConnectionId");
+                                if (connIdProp != null)
+                                {
+                                    var id = connIdProp.GetValue(item);
+                                    if (id != null)
+                                        connections.Add(id.ToString());
+                                }
+                                else
+                                {
+                                    connections.Add(item.ToString());
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        return connections;
     }
 }

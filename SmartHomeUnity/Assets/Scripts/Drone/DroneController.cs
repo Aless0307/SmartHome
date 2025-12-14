@@ -76,32 +76,115 @@ public class DroneController : MonoBehaviour
         SetDroneColor(droneColor);
     }
     
+    void OnDestroy()
+    {
+        // Limpiar el RenderTexture
+        if (droneStreamTexture != null)
+        {
+            droneStreamTexture.Release();
+            Destroy(droneStreamTexture);
+            droneStreamTexture = null;
+        }
+        
+        // Desactivar cámara
+        if (droneCamera != null)
+        {
+            droneCamera.enabled = false;
+        }
+        
+        Debug.Log("[DroneController] 📷 Dron destruido - recursos limpiados");
+    }
+    
+    /// <summary>
+    /// Restaura el VideoStreamSender para que NO apunte a ninguna cámara (o a MainCamera)
+    /// Esto evita que Unity muestre la cámara del dron después de destruirlo
+    /// </summary>
+    private void RestoreMainCameraToVideoStreamSender()
+    {
+        var videoSenders = FindObjectsByType<VideoStreamSender>(FindObjectsSortMode.None);
+        Camera mainCam = Camera.main;
+        
+        foreach (var sender in videoSenders)
+        {
+            var senderType = sender.GetType();
+            var bindingFlags = System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance;
+            
+            // Restaurar la cámara a MainCamera (o null)
+            var sourceField = senderType.GetField("m_source", bindingFlags);
+            if (sourceField != null)
+            {
+                try 
+                { 
+                    // Poner MainCamera o null para que no apunte a la cámara del dron destruido
+                    sourceField.SetValue(sender, mainCam); 
+                    Debug.Log("[DroneController] 📷 VideoStreamSender restaurado a MainCamera");
+                }
+                catch { }
+            }
+        }
+    }
+    
     /// <summary>
     /// Buscar y configurar la cámara del dron
+    /// NUNCA usa Camera.main - solo cámaras hijas o crea una nueva
+    /// La cámara del dron SOLO renderiza a RenderTexture (no a pantalla)
+    /// Así la MainCamera siempre se ve en Unity
     /// </summary>
     private void FindAndSetupCamera()
     {
-        // Si ya está asignada, verificar que sea válida
-        if (droneCamera != null) return;
-        
-        // Buscar en hijos
-        droneCamera = GetComponentInChildren<Camera>();
-        if (droneCamera != null) return;
-        
-        // Buscar cámara con nombre específico en la escena
-        var allCameras = FindObjectsByType<Camera>(FindObjectsSortMode.None);
-        foreach (var cam in allCameras)
+        // Si ya está asignada, configurarla para solo renderizar a RenderTexture
+        if (droneCamera != null)
         {
-            if (cam.name.Contains("Drone") || cam.name.Contains("Stream"))
-            {
-                droneCamera = cam;
-                return;
-            }
+            ConfigureDroneCameraForStreamingOnly();
+            return;
         }
         
-        // Usar Camera.main como último recurso
-        droneCamera = Camera.main;
+        // Buscar en hijos SOLAMENTE
+        droneCamera = GetComponentInChildren<Camera>();
+        if (droneCamera != null)
+        {
+            ConfigureDroneCameraForStreamingOnly();
+            return;
+        }
+        
+        // Si no hay cámara hija, crear una nueva como hijo del dron
+        Debug.Log("[DroneController] Creando cámara para el dron");
+        GameObject camObj = new GameObject("DroneCamera");
+        camObj.transform.SetParent(transform);
+        camObj.transform.localPosition = new Vector3(0, 3, -8);
+        camObj.transform.localRotation = Quaternion.Euler(20, 0, 0);
+        droneCamera = camObj.AddComponent<Camera>();
+        droneCamera.tag = "Untagged"; // NO es MainCamera
+        
+        ConfigureDroneCameraForStreamingOnly();
     }
+    
+    /// <summary>
+    /// Configura la cámara del dron para que SOLO renderice al RenderTexture del streaming
+    /// NO renderiza a la pantalla, así la MainCamera siempre se ve en Unity
+    /// </summary>
+    private void ConfigureDroneCameraForStreamingOnly()
+    {
+        if (droneCamera == null) return;
+        
+        // Crear RenderTexture si no existe
+        if (droneStreamTexture == null)
+        {
+            droneStreamTexture = new RenderTexture(1280, 720, 24, RenderTextureFormat.BGRA32);
+            droneStreamTexture.name = "DroneStreamRT";
+            droneStreamTexture.Create();
+        }
+        
+        // La cámara del dron SOLO renderiza al RenderTexture, NO a la pantalla
+        droneCamera.targetTexture = droneStreamTexture;
+        droneCamera.depth = -10; // Menor prioridad que MainCamera
+        droneCamera.enabled = true; // Puede estar activa porque no renderiza a pantalla
+        
+        Debug.Log("[DroneController] 📷 Cámara del dron configurada para streaming (no afecta vista Unity)");
+    }
+    
+    // RenderTexture exclusivo para esta cámara de dron
+    private RenderTexture droneStreamTexture;
     
     void Update()
     {
@@ -385,18 +468,22 @@ public class DroneController : MonoBehaviour
     
     /// <summary>
     /// Cambia la cámara del streaming a la cámara de este dron
-    /// Configura directamente el VideoStreamSender
+    /// Usa RenderTexture para no afectar la vista de Unity
     /// </summary>
     private void SwitchToThisDroneCamera()
     {
         if (droneCamera == null) FindAndSetupCamera();
         if (droneCamera == null) return;
         
+        // La cámara ya está configurada con RenderTexture en FindAndSetupCamera
+        // Solo necesitamos configurar el VideoStreamSender para usar nuestra cámara/RenderTexture
+        Debug.Log("[DroneController] 📷 Configurando streaming con cámara del dron");
+        
         ConfigureVideoStreamSenderWithDroneCamera();
     }
     
     /// <summary>
-    /// Configura el VideoStreamSender para usar la cámara del dron
+    /// Configura el VideoStreamSender para usar la cámara del dron (que renderiza a RenderTexture)
     /// </summary>
     private void ConfigureVideoStreamSenderWithDroneCamera()
     {
@@ -407,20 +494,32 @@ public class DroneController : MonoBehaviour
             var senderType = sender.GetType();
             var bindingFlags = System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance;
             
-            // Establecer sourceType a Camera (0)
+            // Opción 1: Establecer la cámara directamente
             var sourceTypeField = senderType.GetField("m_sourceType", bindingFlags);
             if (sourceTypeField != null)
             {
-                try { sourceTypeField.SetValue(sender, 0); }
+                try { sourceTypeField.SetValue(sender, 0); } // 0 = Camera
                 catch { }
             }
             
-            // Asignar la cámara
             var sourceField = senderType.GetField("m_source", bindingFlags);
             if (sourceField != null)
             {
                 try { sourceField.SetValue(sender, droneCamera); }
                 catch { }
+            }
+            
+            // Opción 2: Si usa RenderTexture, asignar el nuestro
+            if (droneStreamTexture != null)
+            {
+                foreach (var field in senderType.GetFields(bindingFlags))
+                {
+                    if (field.FieldType == typeof(RenderTexture))
+                    {
+                        try { field.SetValue(sender, droneStreamTexture); }
+                        catch { }
+                    }
+                }
             }
         }
     }
